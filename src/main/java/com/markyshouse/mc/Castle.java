@@ -15,6 +15,9 @@ import java.util.Map;
 /**
  * Created by mark on 9/15/2015.
  */
+
+// TODO - Move all of this to StructureBuilder / TowerBuilder
+/*
 public class Castle {
     static public int TOWER_SIZE = 9;
     static public int GROUNDS_SIZE = 15;
@@ -22,13 +25,13 @@ public class Castle {
     private BlockPos _pos;
     private World _world;
     private IChunkProvider _chunk;
-    private static boolean isLevelEnough(int x, int z, HeightAnalyser analyser) {
+    private static boolean isLevelEnough(int x, int z, TerrainManager analyser) {
         //analyser.analyze(new BlockPos(x, 64.0, z), SLOPE_SIZE, SLOPE_SIZE);
         analyser.analyze(new BlockPos(x, 64.0, z), GROUNDS_SIZE, GROUNDS_SIZE);
         return analyser.max_height - analyser.min_height < TOWER_SIZE;
     }
     public static BlockPos canBuildHere(int x, int z, World world, IChunkProvider chunkProvider) {
-        HeightAnalyser analyser = new HeightAnalyser(world, chunkProvider);
+        TerrainManager analyser = new TerrainManager(world, chunkProvider);
         BlockPos try_pos = new BlockPos(x, 64, z);
         Chunk chunk = chunkProvider.provideChunk(try_pos);
         BiomeGenBase biome = chunk.getBiome(try_pos, world.getWorldChunkManager());
@@ -54,8 +57,8 @@ public class Castle {
                 int jx = x + (jitter_x * JITTER);
                 int jz = z + (jitter_z * JITTER);
                 if (isLevelEnough(jx, jz, analyser)) {
-                    System.out.println("** location jitter: " + jx + ", " + jz + " -- " + analyser.average_height + " " + biome.biomeName);
-                    return new BlockPos(x, analyser.average_height, z);
+                    System.out.println("** location jitter: " + jx + ", " + jz + " -- " + analyser.build_height + " " + biome.biomeName);
+                    return new BlockPos(x, analyser.build_height, z);
                 }
             }
         }
@@ -75,7 +78,7 @@ public class Castle {
     void setTerrainHeight(int x, int target_h, int z, World world, IChunkProvider chunkProvider, IBlockState digBlock, IBlockState fillBlock, IBlockState sameBlock) {
         BlockPos pos = new BlockPos(x, target_h, z);
         Chunk chunk = chunkProvider.provideChunk(pos);
-        int h = chunk.getHeight(pos); // HeightAnalyser.get_ground_level(pos, chunkProvider);
+        int h = chunk.getHeight(pos); // TerrainManager.get_ground_level(pos, chunkProvider);
 
         if (h > target_h) {
             // need to dig
@@ -90,7 +93,7 @@ public class Castle {
             }
         } else if (h < target_h) {
             // need to fill
-            Block b = chunk.getBlock(new BlockPos(x, h, z));
+            Square b = chunk.getBlock(new BlockPos(x, h, z));
             IBlockState bs = fillBlock; // Blocks.diamond_block.getDefaultState();
             for (int y = h; y <= target_h; y++) {
                 world.setBlockState(new BlockPos(x, y, z), bs);
@@ -121,7 +124,7 @@ public class Castle {
                     setTerrainHeight(x, py, z, world, chunkProvider, Blocks.sandstone.getDefaultState(), Blocks.sandstone.getDefaultState(), Blocks.sandstone.getDefaultState());
                 } else if (r < r_slope){
                     double pct = 1.0 - (r_slope - r) / (r_slope - r_grounds);
-                    int ground = HeightAnalyser.get_ground_level(new BlockPos(x, py, z), chunkProvider);
+                    int ground = TerrainManager.get_ground_level(new BlockPos(x, py, z), chunkProvider);
                     int slope_y = py + (int)Math.round((ground - py) * pct);
                     setTerrainHeight(x, slope_y, z, world, chunkProvider, Blocks.emerald_block.getDefaultState(), Blocks.redstone_block.getDefaultState(), Blocks.lapis_block.getDefaultState());
                 }
@@ -134,3 +137,4 @@ public class Castle {
         bullDoze((float)TOWER_SIZE/2.0f, (float)GROUNDS_SIZE/2.0f, (float)SLOPE_SIZE/2.0f, world, chunkProvider);
     }
 }
+*/
