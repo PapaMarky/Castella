@@ -75,6 +75,8 @@ public class TowerBuilder extends StructureBuilder {
     Integer[] center = null;
     EnumFacing ladder_facing;
 
+    BlockPos bridge_road_point = null;
+
     protected List getBuildableBiomeList() {
         return towerSpawnBiomes;
     }
@@ -82,7 +84,7 @@ public class TowerBuilder extends StructureBuilder {
         int area = 5; // this much room on all sides
         return new StructureBoundingBox2D(origin.getX() - area, origin.getZ() - area, origin.getX() + getWidth() + area, origin.getZ() + getHeight() + area);
     }
-    public StructureBuilder.TYPE getType() { return StructureBuilder.TYPE.TOWER; }
+    public int getType() { return StructureBuilder.TOWER_TYPE; }
 
     protected void addWalls(BlockPos position, int floor, IBlockChooser blockChooser, World world, IChunkProvider chunkProvider) {
         for (Integer[] point : walls) {
@@ -203,6 +205,7 @@ public class TowerBuilder extends StructureBuilder {
                     world.destroyBlock(p1.up(k), false);
                     world.destroyBlock(p2.up(k), false);
                 }
+                bridge_road_point = p1;
                 break;
             }
         }
@@ -226,6 +229,7 @@ public class TowerBuilder extends StructureBuilder {
 
         return bridge_facing;
     }
+
     protected void addDoor(BlockPos position, Random random, int floor, IBlockChooser blockChooser, World world, IChunkProvider chunkProvider) {
         if (random.nextFloat() < 0.01) return;
         BlockPos floor_center = new BlockPos(position.getX() + getWidth()/2, position.getY() + (floor * 3), position.getZ() + getHeight()/2);
@@ -306,35 +310,6 @@ public class TowerBuilder extends StructureBuilder {
 
         // ladder vs spiral stair case
         ladder_facing = ladder_facing.rotateY();
-        /*
-        for (int x = 0; x < getWidth(); x++) {
-            int x0 = position.getX() + x;
-            for (int z = 0; z < getHeight(); z++) {
-                int z0 = position.getZ() + z;
-                int yy = position.getY() + floor * 3;
-
-                char c = footprint[x][z];
-                BlockPos pos = new BlockPos(x0, yy, z0);
-
-                if (c == 'D') {
-                    for (int a = 1; a < 3; a++)
-                        world.destroyBlock(pos.up(a), false);
-                    if (hasDoors && floor <= 1) {
-                        IBlockState door = doorChooser.chooseBlock(pos.up(), world, chunkProvider);
-
-                        Block new_door = door.getBlock();
-                        EnumFacing facing = EnumFacing.SOUTH;
-                        if (z - position.getZ() > 12)
-                            facing = facing.getOpposite();
-                        ItemDoor.placeDoor(world, pos.up(), facing, new_door);
-                    }
-                    world.setBlockState(pos.up(3), blockChooser.chooseBlock(pos.up(3), world, chunkProvider));
-                    continue;
-                }
-
-            }
-        }
-        */
     }
     public int getWidth() {
         return footprint[0].length;
@@ -354,6 +329,7 @@ public class TowerBuilder extends StructureBuilder {
         while (ladder_facing == EnumFacing.DOWN || ladder_facing == EnumFacing.UP)
             ladder_facing = EnumFacing.random(random);
 
+        bridge_road_point = null;
     }
 
     protected  IBlockState[][] mapGroundCover(BlockPos origin, Random random, World world, IChunkProvider chunkProvider) {
@@ -404,9 +380,11 @@ public class TowerBuilder extends StructureBuilder {
         }
         return plantmap;
     }
-    public void buildInner(BlockPos position, TerrainMap map, Random random, World world, IChunkProvider chunkProvider) {
+    public void buildInner(Structure structure, BlockPos position, TerrainMap map, Random random, World world, IChunkProvider chunkProvider) {
         System.out.println(" ##### BUILDING TOWER AT " + position.getX() + ", " + position.getY() + ", " + position.getZ());
         init(random);
+        structure.position = new BlockPos(position.getX() + getWidth()/2, position.getY(), position.getZ() + getHeight()/2);
+        structure.StructureType = StructureBuilder.TOWER_TYPE;
             /*
             switch (type) {
                 case STONE:
@@ -431,11 +409,16 @@ public class TowerBuilder extends StructureBuilder {
         // bulldoze
         BullDozer.bullDoze(position, footprint, blockChooser, blockChooser, random, world, chunkProvider);
 
-        //addGroundFloor(position, footprint, blockChooser, )
-
         // build 1st floor
         for (int f = 0; f < n_floors; f++) {
             addFloor(position, random, f, blockChooser, world, chunkProvider);
+        }
+        structure.addRoadPoint(position.east(8));
+        structure.addRoadPoint(position.west(8));
+        structure.addRoadPoint(position.north(8));
+        structure.addRoadPoint(position.south(8));
+        if (bridge_road_point != null) {
+            structure.addRoadPoint(bridge_road_point);
         }
 
         ///// RESTORE GROUND COVER
@@ -458,9 +441,7 @@ public class TowerBuilder extends StructureBuilder {
         }
 
         // mark the tower with a pillar
-        IBlockState bs = Blocks.stonebrick.getDefaultState();
-
-        //System.out.println(" ##### TOWER AT " + position.getX() + ", " + position.getY() + ", " + position.getZ());
+        // IBlockState bs = Blocks.stonebrick.getDefaultState();
         /*
         int base = (n_floors + 1) * 3 + 3;
         BlockPos columnPos = new BlockPos(position.getX() + footprint[0].length/2, position.getY() + 10, position.getZ() + footprint.length/2);

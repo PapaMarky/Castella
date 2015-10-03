@@ -16,10 +16,7 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.structure.MapGenStructureData;
 import net.minecraft.world.storage.MapStorage;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Created by mark on 9/16/2015.
@@ -58,8 +55,8 @@ public abstract class StructureBuilder {
 
     public char[][] footprint;
 
-    enum TYPE {TOWER};
-    abstract public TYPE getType();
+    public static final int TOWER_TYPE = 1;
+    abstract public int getType();
 
     public boolean biomeIsInList(BiomeGenBase biome, List biome_list) {
         return biome_list.contains(biome);
@@ -79,7 +76,7 @@ public abstract class StructureBuilder {
         int JITTER_X = w/2;
         int JITTER_Z = h/2;
         boolean found = false;
-        System.out.println(String.format("TRY TO BUILD at %d, %d", x, z));
+        //System.out.println(String.format("TRY TO BUILD at %d, %d", x, z));
         for (int jitter_x = 0; !found && jitter_x <= 2; jitter_x++) {
             for (int jitter_z = 0; !found && jitter_z <= 2; jitter_z++) {
                 int jx = x + (jitter_x * JITTER_X);
@@ -93,7 +90,7 @@ public abstract class StructureBuilder {
                 if (biomeList != null) {
                     for (BiomeGenBase b : biomeList) {
                         if (! biomeIsInList(b, goodBiomes)) {
-                            System.out.println(String.format("-- bad biome: %s", b.biomeName));
+                            //System.out.println(String.format("-- bad biome: %s", b.biomeName));
                             return null;
                         }
                     }
@@ -101,9 +98,9 @@ public abstract class StructureBuilder {
                 if (!containsStructure(jx, jz, w, h, world, chunkProvider)) {
                     Structure structure = build(new BlockPos(jx, map.getBuildHeight(), jz), map, random, world, chunkProvider);
                     if (structure != null) {
-                        System.out.println("** location jitter: " + jx + ", " + jz + " -- " + map.getBuildHeight() + " " + "biome.biomeName" + " : " + (int) Math.floor(jx / 16.0) + ", " + (int) Math.floor(jz / 16.0));
-                        System.out.println(String.format("   bounds: (%d, %d) - (%d, %d)",
-                                structure.territoryBox.minX, structure.territoryBox.minZ, structure.territoryBox.maxX, structure.territoryBox.maxZ));
+                        //System.out.println("** location jitter: " + jx + ", " + jz + " -- " + map.getBuildHeight() + " " + "biome.biomeName" + " : " + (int) Math.floor(jx / 16.0) + ", " + (int) Math.floor(jz / 16.0));
+                        //System.out.println(String.format("   bounds: (%d, %d) - (%d, %d)",
+                        //        structure.territoryBox.minX, structure.territoryBox.minZ, structure.territoryBox.maxX, structure.territoryBox.maxZ));
                     }
                     return structure;
                 }
@@ -291,6 +288,71 @@ public abstract class StructureBuilder {
 
 
     abstract void init(Random random);
+    public Structure findClosestStructure(BlockPos position, World world) {
+        Structure structure = null;
+
+        MarkyshouseWorldSavedData data = MarkyshouseWorldSavedData.forWorld(world);
+        NBTTagCompound regionData = data.getRegionData(position.getX(), position.getZ());
+        NBTTagCompound nearest = null;
+        double distance = 1000000000.0; // arbitrariliy large number
+
+        double myX = position.getX();
+        double myZ = position.getZ();
+
+        if (regionData != null) {
+            NBTTagCompound structureMap = regionData.getCompoundTag("structuremap");
+            Set keyset = structureMap.getKeySet();
+            Iterator it = keyset.iterator();
+            while (it.hasNext()) {
+                String key = (String) it.next();
+                NBTTagCompound s = structureMap.getCompoundTag(key);
+                if (s.hasKey("position")) {
+                    // make sure other is not 'this'
+                    // make sure it has road slots open
+                    boolean hasRoads = false;
+                    if (s.hasKey("roadpoints")) {
+                        NBTTagList roads = s.getTagList("roadpoints", s.getId());
+                        for (int j = 0; j < roads.tagCount(); j++) {
+                            NBTTagCompound road = roads.getCompoundTagAt(j);
+                            if (! road.getBoolean("inuse")) {
+                                hasRoads = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!hasRoads) continue;
+
+                    int[] t = s.getIntArray("position");
+                    double d = Math.sqrt( (myX-t[0])*(myX-t[0]) + (myZ-t[2])*(myZ-t[2]));
+                    if (d < distance) {
+                        distance = d;
+                        nearest = s;
+                    }
+                }
+            }
+        }
+
+        // TODO pick a meaningful maximum
+        if (nearest != null && distance < 512.0) {
+            structure = new Structure(new StructureBoundingBox2D(nearest.getIntArray("territory")));
+
+            int[] p = nearest.getIntArray("position");
+            structure.position = new BlockPos(p[0], p[1], p[2]);
+            structure.StructureType = nearest.getInteger("type");
+            if (nearest.hasKey("roadpoints")) {
+                NBTTagList rpoints = nearest.getTagList("roadpoints", nearest.getId());
+                for (int i = 0; i < rpoints.tagCount(); i++) {
+                    NBTTagCompound rpTag = rpoints.getCompoundTagAt(i);
+                    int[] rpos = rpTag.getIntArray("position");
+                    boolean inUse = rpTag.getBoolean("inuse");
+                    BlockPos rPos = new BlockPos(rpos[0], rpos[1], rpos[2]);
+                    structure.addRoadPoint(rPos, inUse);
+                }
+            }
+
+        }
+        return structure;
+    }
     public Structure build(BlockPos position, TerrainMap map, Random random, World world, IChunkProvider chunkProvider) {
         //int[][] tree_map = TerrainManager.getTreeMap(position, footprint[0].length, footprint.length, world, chunkProvider);
 
@@ -300,25 +362,28 @@ public abstract class StructureBuilder {
 
         StructureBoundingBox2D territoryBox = getTerritoryBox(position);
         if (regionData != null) {
-            NBTTagList structureList = regionData.getTagList("structures", regionData.getId());
-            int structure_count = structureList.tagCount();
-            for (int i = 0; i < structure_count; i++) {
-                NBTTagCompound s = structureList.getCompoundTagAt(i);
+            NBTTagCompound structureMap = regionData.getCompoundTag("structuremap");
+            Set keyset = structureMap.getKeySet();
+            Iterator it = keyset.iterator();
+            while (it.hasNext()) {
+                String key = (String)it.next();
+                NBTTagCompound s = structureMap.getCompoundTag(key);
                 if (s.hasKey("territory")) {
                     int[] t = s.getIntArray("territory");
                     StructureBoundingBox2D box = new StructureBoundingBox2D(t);
                     if (territoryBox.intersects(box)) {
-                        System.out.println(String.format("-- TOO CLOSE TO existing Structure at (%d, %d) - (%d, %d)", box.minX, box.minZ, box.maxX, box.maxZ));
+                        // System.out.println(String.format("-- TOO CLOSE TO existing Structure at (%d, %d) - (%d, %d)", box.minX, box.minZ, box.maxX, box.maxZ));
                         return null;
                     }
                 }
             }
         }
         Structure structure = new Structure(territoryBox);
+        buildInner(structure, position, map, random, world, chunkProvider);
+        structure.StructureType = this.getType();
 
-        // TODO move the iteration of x, z into specific StructureBuilder.
+        Structure neighbor = findClosestStructure(position, world);
 
-        buildInner(position, map, random, world, chunkProvider);
         // Add new structure to all regions it intersects
         int rx0 = (int)Math.floor(Math.floor(territoryBox.minX/16.0 / 32.0));
         int rz0 = (int)Math.floor(Math.floor(territoryBox.minZ/16.0 / 32.0));
@@ -327,17 +392,34 @@ public abstract class StructureBuilder {
 
         HashMap<String, Boolean> rmap = new HashMap<String, Boolean>();
         int[] territory_array = new int[]{territoryBox.minX, territoryBox.minZ, territoryBox.maxX, territoryBox.maxZ};
+        int[] position_array = new int[]{position.getX(),position.getY(),position.getZ()};
         for (int rx = rx0; rx <= rx1; rx++) {
             for (int rz = rz0; rz <= rz1; rz++) {
                 String key = data.getRegionKey(rx, rz);
                 if (!rmap.containsKey(key)) {
                     rmap.put(key, true);
                     regionData = data.getRegionDataFromRegion(rx, rz);
-                    NBTTagList structureList = regionData.getTagList("structures", regionData.getId());
+                    NBTTagCompound structureMap = regionData.getCompoundTag("structuremap");
+
                     NBTTagCompound structure_tag = new NBTTagCompound();
                     structure_tag.setIntArray("territory", territory_array);
-                    structureList.appendTag(structure_tag);
-                    regionData.setTag("structures", structureList);
+                    structure_tag.setIntArray("position", position_array);
+                    structure_tag.setInteger("type", structure.StructureType);
+                    if (structure.roadPoints.size() > 0) {
+                        NBTTagList rpList = new NBTTagList();
+                        for (Structure.RoadPoint rp : structure.roadPoints) {
+                            int[] p = new int[]{rp.position.getX(),rp.position.getY(),rp.position.getZ()};
+                            boolean inUse = rp.isInUse();
+                            NBTTagCompound rpTag = new NBTTagCompound();
+                            rpTag.setIntArray("position", p);
+                            rpTag.setBoolean("inuse", inUse);
+                            rpList.appendTag(rpTag);
+                        }
+                        structure_tag.setTag("roadpoints", rpList);
+                    }
+
+                    structureMap.setTag(String.format("%d:%d:%d",position_array[0], position_array[1],position_array[2]), structure_tag);
+                    regionData.setTag("structuremap", structureMap);
                 }
             }
         }
@@ -346,19 +428,20 @@ public abstract class StructureBuilder {
     }
 
     abstract public StructureBoundingBox2D getTerritoryBox(BlockPos origin);
-    abstract public void buildInner(BlockPos origin, TerrainMap map, Random random, World world, IChunkProvider chunkProvider);
 
-    private static StructureBuilder getBuilder(TYPE t, BlockPos blockPos, Random random) {
+    abstract public void buildInner(Structure structure, BlockPos origin, TerrainMap map, Random random, World world, IChunkProvider chunkProvider);
+
+    private static StructureBuilder getBuilder(int t, BlockPos blockPos, Random random) {
         switch (t) {
-            case TOWER:
+            case TOWER_TYPE:
                 // should be a static function on TowerBuilder that picks type from blockPos, etc
                 return null; // new TowerBuilder(TowerBuilder.TYPE.STONE, blockPos, random);
         }
         return null;
     }
-    private static char[][] getFootprint(TYPE t) {
+    private static char[][] getFootprint(int t) {
         switch (t) {
-            case TOWER:
+            case TOWER_TYPE:
                 return TowerBuilder.getFootprint();
         }
         return null;

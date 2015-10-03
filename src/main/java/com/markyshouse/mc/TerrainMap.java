@@ -48,8 +48,8 @@ public class TerrainMap {
 
     public boolean isLevelEnough() {
         boolean isLevel = max_height - Math.max(water_level, min_height) < Math.min(_width, _height);
-        if (!isLevel)
-            System.out.println("-- NotLevel");
+        //if (!isLevel)
+        //    System.out.println("-- NotLevel");
         return isLevel;
     }
 
