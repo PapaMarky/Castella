@@ -7,6 +7,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.village.Village;
 import net.minecraft.village.VillageCollection;
 import net.minecraft.world.World;
@@ -152,6 +153,7 @@ public abstract class StructureBuilder {
         double myZ = position.getZ();
 
         if (regionData != null) {
+            // FIND NEAREST NEIGHBOR
             NBTTagCompound structureMap = regionData.getCompoundTag("structuremap");
             Set keyset = structureMap.getKeySet();
             Iterator it = keyset.iterator();
@@ -198,7 +200,7 @@ public abstract class StructureBuilder {
                     int[] rpos = rpTag.getIntArray("position");
                     boolean inUse = rpTag.getBoolean("inuse");
                     BlockPos rPos = new BlockPos(rpos[0], rpos[1], rpos[2]);
-                    structure.addRoadPoint(rPos, inUse);
+                    structure.setRoadPoint(EnumFacing.getHorizontal(i), rPos, inUse);
                 }
             }
 
@@ -245,6 +247,8 @@ public abstract class StructureBuilder {
         int rx1 = (int)Math.floor(Math.floor(territoryBox.maxX/16.0 / 32.0));
         int rz1 = (int)Math.floor(Math.floor(territoryBox.maxZ/16.0 / 32.0));
 
+
+        // WRITE UPDATED DATA
         HashMap<String, Boolean> rmap = new HashMap<String, Boolean>();
         int[] territory_array = new int[]{territoryBox.minX, territoryBox.minZ, territoryBox.maxX, territoryBox.maxZ};
         int[] position_array = new int[]{structure.position.getX(),structure.position.getY(),structure.position.getZ()};
@@ -260,7 +264,7 @@ public abstract class StructureBuilder {
                     structure_tag.setIntArray("territory", territory_array);
                     structure_tag.setIntArray("position", position_array);
                     structure_tag.setInteger("type", structure.StructureType);
-                    if (structure.roadPoints.size() > 0) {
+                    if (structure.roadPoints.length > 0) {
                         NBTTagList rpList = new NBTTagList();
                         for (Structure.RoadPoint rp : structure.roadPoints) {
                             int[] p = new int[]{rp.position.getX(),rp.position.getY(),rp.position.getZ()};

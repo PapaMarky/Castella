@@ -29,17 +29,48 @@ public class Structure {
     public StructureBoundingBox2D territoryBox;
     public BlockPos position;
     public int StructureType = 0;
-    public ArrayList<RoadPoint> roadPoints = new ArrayList<RoadPoint>();
+    public RoadPoint[] roadPoints = new RoadPoint[4];
 
     public Structure(StructureBoundingBox2D territory) {
         territoryBox = territory;
     }
-    public void addRoadPoint(BlockPos pos) {
-        roadPoints.add(new RoadPoint(pos));
+    public void setRoadPoint(EnumFacing direction, BlockPos pos) {
+        RoadPoint rp = new RoadPoint(pos);
+        setRoadPoint(direction, rp);
     }
-    public void addRoadPoint(BlockPos pos, boolean inuse) {
+    public void setRoadPoint(EnumFacing direction, BlockPos pos, boolean inuse) {
         RoadPoint rp = new RoadPoint(pos);
         rp.inUse = inuse;
-        roadPoints.add(rp);
+        setRoadPoint(direction, rp);
+    }
+    private void setRoadPoint(EnumFacing direction, RoadPoint rp) {
+        if (direction != null && direction.getAxis().isHorizontal()) {
+            roadPoints[direction.getHorizontalIndex()] = rp;
+        }
+    }
+
+    // Select a RoadPoint in the direction of the Structure, other.
+    // Return null if the appropriate RoadPoint is in use
+    public RoadPoint selectRoadPoint(Structure other) {
+        EnumFacing direction = EnumFacing.getFacingFromVector(
+                other.position.getX() - this.position.getX(),
+                0,
+                other.position.getZ() - this.position.getZ());
+        if (direction.getAxis().isHorizontal() && !roadPoints[direction.getHorizontalIndex()].isInUse()) {
+            return roadPoints[direction.getHorizontalIndex()];
+        }
+
+        return null;
+    }
+    // Select a RoadPoint in the direction of angle.
+    // Return null if the appropriate RoadPoint is in use
+    public RoadPoint selectRoadPoint(double angle) {
+        return null;
+    }
+    // NOTE - Angle is arccos of two vectors
+    public RoadPoint getRoadPoint(EnumFacing direction) {
+        if (direction != null && direction.getAxis().isHorizontal())
+            return roadPoints[direction.getHorizontalIndex()];
+        return null;
     }
 }

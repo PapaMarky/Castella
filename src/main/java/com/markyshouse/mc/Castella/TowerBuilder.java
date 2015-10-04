@@ -76,6 +76,7 @@ public class TowerBuilder extends StructureBuilder {
     EnumFacing ladder_facing;
 
     BlockPos bridge_road_point = null;
+    EnumFacing bridge_direction = null;
 
     protected List getBuildableBiomeList() {
         return towerSpawnBiomes;
@@ -206,6 +207,7 @@ public class TowerBuilder extends StructureBuilder {
                     world.destroyBlock(p2.up(k), false);
                 }
                 bridge_road_point = p1;
+                bridge_direction = bridge_facing;
                 break;
             }
         }
@@ -413,12 +415,12 @@ public class TowerBuilder extends StructureBuilder {
         for (int f = 0; f < n_floors; f++) {
             addFloor(position, random, f, blockChooser, world, chunkProvider);
         }
-        structure.addRoadPoint(position.east(8));
-        structure.addRoadPoint(position.west(8));
-        structure.addRoadPoint(position.north(8));
-        structure.addRoadPoint(position.south(8));
+        structure.setRoadPoint(EnumFacing.NORTH, structure.position.north(8));
+        structure.setRoadPoint(EnumFacing.EAST, structure.position.east(8));
+        structure.setRoadPoint(EnumFacing.SOUTH, structure.position.south(8));
+        structure.setRoadPoint(EnumFacing.WEST, structure.position.west(8));
         if (bridge_road_point != null) {
-            structure.addRoadPoint(bridge_road_point);
+            structure.setRoadPoint(bridge_direction, bridge_road_point);
         }
 
         ///// RESTORE GROUND COVER
@@ -450,8 +452,6 @@ public class TowerBuilder extends StructureBuilder {
         }
         */
         // ...
-    }
-    public void buildGroundFloor(Random random, int x, int z, int h, int floor, World world, IChunkProvider chunkProvider) {
     }
     int n_floors = 0;
 

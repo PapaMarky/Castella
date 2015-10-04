@@ -38,7 +38,7 @@ public class RoadBuilder {
     private ArrayList<BlockPos> point_list;
     protected Structure structure0;
     protected Structure structure1;
-    private double MAX_SEGMENT_LENGTH = 50;
+    private double MAX_SEGMENT_LENGTH = 30;
 
     public BlockPos getCenter(BlockPos p0, BlockPos p1) {
         int x = p0.getX() + (p1.getX() - p0.getX())/2;
@@ -84,8 +84,14 @@ public class RoadBuilder {
         int x1 = p1.getX();
 
         if (deltax == 0) { // verticle line
-            for (int z = z0; z < z1; z++) {
-                plot(new BlockPos(x0, 64, z), Blocks.brick_block.getDefaultState(), world, chunkProvider);
+            for (int z = z0; compare(z, z1, zInc); z += zInc) {
+                //plot(new BlockPos(x0, 64, z), Blocks.brick_block.getDefaultState(), world, chunkProvider);
+                plot(new BlockPos(x0, 64, z), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+            }
+        } else if (deltaz == 0) {
+            for (int x = x0; compare(x, x1, xInc); x += xInc) {
+                plot(new BlockPos(x, 64, z0), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                //plot(new BlockPos(x, 64, z0), Blocks.coal_block.getDefaultState(), world, chunkProvider);
             }
         } else {
             double error = 0;
@@ -94,6 +100,7 @@ public class RoadBuilder {
             for (int x = x0; compare(x, x1, xInc); x += xInc) {
                 BlockPos blockPos = new BlockPos(x, 64, z);
                 plot(new BlockPos(x, 64, z), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+               //  plot(new BlockPos(x, 64, z), Blocks.planks.getDefaultState(), world, chunkProvider);
 
                 error = error + deltaerr;
                 while (error >= 0.5) {
@@ -101,9 +108,11 @@ public class RoadBuilder {
                     error = error - 1.0;
 
                     plot(new BlockPos(x, 64, z), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                    //plot(new BlockPos(x, 64, z), Blocks.red_mushroom_block.getDefaultState(), world, chunkProvider);
                 }
             }
         }
+        world.setBlockState(p1.up(2), Blocks.diamond_block.getDefaultState());
     }
     // Build a road from structure0 to structure1
     public void buildRoad(Structure s0, Structure s1, Random random, World world, IChunkProvider chunkProvider) {
@@ -115,8 +124,21 @@ public class RoadBuilder {
         // TODO validate that structures have road heads that are not in use
         // TODO choose which road head to use for each structure
 
-        stack.push(s1.position);
-        BlockPos p0 = s0.position;
+        Structure.RoadPoint pt0 = s0.selectRoadPoint(s1);
+        if (pt0 == null) return;
+        Structure.RoadPoint pt1 = s1.selectRoadPoint(s0);
+        if (pt1 == null) return;
+
+        stack.push(pt1.getPosition());
+        BlockPos p0 = pt0.getPosition();
+
+        pt0.setUsed();
+        pt1.setUsed();
+
+        for (int j = 1; j < 10; j++) {
+            world.setBlockState(pt0.getPosition().up(j), Blocks.redstone_block.getDefaultState());
+            world.setBlockState(pt1.getPosition().up(j), Blocks.lapis_block.getDefaultState());
+        }
 
         while(stack.size() > 0) {
             BlockPos p1 = stack.pop();
@@ -126,7 +148,7 @@ public class RoadBuilder {
             double distance = Math.sqrt(dx*dx + dz*dz);
             if (distance > MAX_SEGMENT_LENGTH) {
                 BlockPos center = getCenter(p0, p1);
-                double jitter = (distance/3.0);
+                double jitter = (2*distance/5.0); // changed from 3.0
                 double jitterX = jitter * random.nextDouble() - jitter/2.0;
                 double jitterZ = jitter * random.nextDouble() - jitter/2.0;
 
