@@ -141,6 +141,22 @@ public class TerrainMap {
         return meta;
     }
 
+    static public int getGroundOrWaterLevel(BlockPos pos, World world, IChunkProvider chunkProvider) {
+        Chunk chunk = chunkProvider.provideChunk(pos);
+        BlockPos groundPos = world.getTopSolidOrLiquidBlock(pos);
+        Material material = chunk.getBlock(groundPos).getMaterial();
+        Block block = chunk.getBlock(groundPos);
+        while(!isGround(block) && !isLiquid(block)) {
+            groundPos = groundPos.down();
+            block = chunk.getBlock(groundPos);
+        }
+        while(isLiquid(block)) {
+            groundPos = groundPos.up();
+            block = chunk.getBlock(groundPos);
+        }
+        return groundPos.getY();
+    }
+
     static public int getGroundLevel(BlockPos pos, World world, IChunkProvider chunkProvider) {
         Chunk chunk = chunkProvider.provideChunk(pos);
         BlockPos groundPos = world.getTopSolidOrLiquidBlock(pos);

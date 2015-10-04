@@ -110,54 +110,6 @@ public abstract class StructureBuilder {
     }
     abstract protected List getBuildableBiomeList();
 
-    public boolean canBuildHere(int x, int z, Random random, World world, IChunkProvider chunkProvider) {
-        /*
-        // TODO: randomly pick a type. Maybe loop trying several.
-        // Right now there is only one type
-        TYPE type = TYPE.TOWER;
-        BlockPos try_pos = new BlockPos(x, 64, z);
-        Chunk chunk = chunkProvider.provideChunk(try_pos);
-        BiomeGenBase biome = chunk.getBiome(try_pos, world.getWorldChunkManager());
-
-        // skip places that are not structure friendly
-        switch (biome.biomeID) {
-            case 0: // ocean
-                //case 3: // extreme hills
-            case 7: // river
-            case 8: // hell
-            case 9: // sky
-            case 10: // frozen ocean
-            case 11: // frozen river
-            //case 20: // extreme hills edge
-            case 24: // deep ocean
-            //case 29: // roofed forest
-                return false;
-        }
-        char[][] footprint = getFootprint(type);
-        int h = footprint.length;
-        int w = footprint[0].length;
-
-        int min_h = 0;
-        int max_h = 0;
-        int JITTER_X = w/2;
-        int JITTER_Z = h/2;
-        boolean found = false;
-        //TerrainManager analyser = new TerrainManager(world, chunkProvider);
-        for (int jitter_x = -1; !found && jitter_x <= 1; jitter_x++) {
-            for (int jitter_z = -1; !found && jitter_z <= 1; jitter_z++) {
-                int jx = x + (jitter_x * JITTER_X);
-                int jz = z + (jitter_z * JITTER_Z);
-                if (map.isLevelEnough() && !containsStructure(jx, jz, w, h, world, chunkProvider)) {
-                    System.out.println("** location jitter: " + jx + ", " + jz + " -- " + map.build_height + " " + biome.biomeName + " : " + (int)Math.floor(jx/16.0) + ", " + (int) Math.floor(jz/16.0));
-                    //return getBuilder(TYPE.TOWER, new BlockPos(jx, analyser.build_height, jz), random);
-                    return true;
-                }
-            }
-        }
-        */
-        return false;
-    }
-
     static protected boolean containsStructure(int bx, int bz, int bw, int bh, World world, IChunkProvider chunkProvider) {
         // TODO - use village collection.
         MapStorage storage = world.getPerWorldStorage();
@@ -184,106 +136,6 @@ public abstract class StructureBuilder {
             return true;
         }
         return false;
-
-        /*
-        for (int i = 0; i < bw; i++) {
-            for (int j = 0; j < bh; j++) {
-                BlockPos pos = new BlockPos(bx + i, 64, bz + j);
-                Chunk chunk = chunkProvider.provideChunk(pos);
-                int h = chunk.getHeight(pos);
-                pos = new BlockPos(bx + i, h, bz +j);
-                Block b = chunk.getBlock(pos);
-                int z = h;
-                BlockState bs = b.getBlockState();
-                IBlockState ibs = bs.getBaseState();
-                int id = Block.getIdFromBlock(b);
-
-                // ids of blocks that only spawn in structures
-                // see http://minecraft-ids.grahamedgecombe.com/
-                switch(id) {
-                    case 1:
-                    case 4:
-                    case 5:
-                    case 7:
-                    case 20:
-                    case 43:
-                    case 44:
-                    case 45:
-                    case 46:
-                    case 47:
-                    case 50:
-                    case 52:
-                    case 53:
-                    case 54:
-                    case 58:
-                    case 59:
-                    case 60:
-                    case 61:
-                    case 62:
-                    case 63:
-                    case 64:
-                    case 67:
-                    case 85:
-                    case 91:
-                    case 95:
-                    case 96:
-                    case 98:
-                    case 101:
-                    case 102:
-                    case 107:
-                    case 108:
-                    case 109:
-                    case 116:
-                    case 117:
-                    case 118:
-                    case 119:
-                    case 125:
-                    case 126:
-                    case 128:
-                    case 131:
-                    case 132:
-                    case 134:
-                    case 135:
-                    case 136:
-                    case 139:
-                    case 140:
-                    case 141:
-                    case 142:
-                    case 143:
-                    case 160:
-                    case 163:
-                    case 164:
-                    case 167:
-                    case 171:
-                    case 176:
-                    case 177:
-                    case 180:
-                    case 181:
-                    case 182:
-                    case 183:
-                    case 184:
-                    case 185:
-                    case 186:
-                    case 187:
-                    case 188:
-                    case 189:
-                    case 190:
-                    case 191:
-                    case 192:
-                    case 193:
-                    case 194:
-                    case 195:
-                    case 196:
-                    case 197:
-                    case 324:
-                    case 328:
-                        System.out.println("--- Found structure");
-                        return true;
-                }
-            }
-        }
-        return false;
-        */
     }
 
 
@@ -383,7 +235,10 @@ public abstract class StructureBuilder {
         structure.StructureType = this.getType();
 
         Structure neighbor = findClosestStructure(position, world);
-
+        if (neighbor != null) {
+            RoadBuilder roadBuilder = new RoadBuilder();
+            roadBuilder.buildRoad(structure, neighbor, random, world, chunkProvider);
+        }
         // Add new structure to all regions it intersects
         int rx0 = (int)Math.floor(Math.floor(territoryBox.minX/16.0 / 32.0));
         int rz0 = (int)Math.floor(Math.floor(territoryBox.minZ/16.0 / 32.0));
@@ -392,7 +247,7 @@ public abstract class StructureBuilder {
 
         HashMap<String, Boolean> rmap = new HashMap<String, Boolean>();
         int[] territory_array = new int[]{territoryBox.minX, territoryBox.minZ, territoryBox.maxX, territoryBox.maxZ};
-        int[] position_array = new int[]{position.getX(),position.getY(),position.getZ()};
+        int[] position_array = new int[]{structure.position.getX(),structure.position.getY(),structure.position.getZ()};
         for (int rx = rx0; rx <= rx1; rx++) {
             for (int rz = rz0; rz <= rz1; rz++) {
                 String key = data.getRegionKey(rx, rz);
@@ -431,14 +286,6 @@ public abstract class StructureBuilder {
 
     abstract public void buildInner(Structure structure, BlockPos origin, TerrainMap map, Random random, World world, IChunkProvider chunkProvider);
 
-    private static StructureBuilder getBuilder(int t, BlockPos blockPos, Random random) {
-        switch (t) {
-            case TOWER_TYPE:
-                // should be a static function on TowerBuilder that picks type from blockPos, etc
-                return null; // new TowerBuilder(TowerBuilder.TYPE.STONE, blockPos, random);
-        }
-        return null;
-    }
     private static char[][] getFootprint(int t) {
         switch (t) {
             case TOWER_TYPE:

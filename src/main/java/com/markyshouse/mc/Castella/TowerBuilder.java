@@ -81,7 +81,7 @@ public class TowerBuilder extends StructureBuilder {
         return towerSpawnBiomes;
     }
     public StructureBoundingBox2D getTerritoryBox(BlockPos origin) {
-        int area = 5; // this much room on all sides
+        int area = 64; // this much room on all sides
         return new StructureBoundingBox2D(origin.getX() - area, origin.getZ() - area, origin.getX() + getWidth() + area, origin.getZ() + getHeight() + area);
     }
     public int getType() { return StructureBuilder.TOWER_TYPE; }
@@ -333,8 +333,8 @@ public class TowerBuilder extends StructureBuilder {
     }
 
     protected  IBlockState[][] mapGroundCover(BlockPos origin, Random random, World world, IChunkProvider chunkProvider) {
-        int width = footprint[0].length;
-        int height = footprint.length;
+        int width = getWidth();
+        int height = getHeight();
 
         IBlockState[][] plantmap = new IBlockState[width][height];
         for (int x = 0; x < width; x++) {
