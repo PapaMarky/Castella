@@ -8,14 +8,12 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 import sun.net.www.http.ChunkedInputStream;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.Stack;
+import java.util.*;
 
 /**
  * Created by mark on 10/2/2015.
@@ -109,7 +107,7 @@ public class RoadBuilder {
 
         return new BlockPos(b.getX(), Math.round(h), b.getZ());
     }
-    private void renderSegment(BlockPos p0, BlockPos p1, World world, IChunkProvider chunkProvider) {
+    private void renderSegment(BlockPos p0, BlockPos p1, IBlockState blockState, World world, IChunkProvider chunkProvider) {
         double deltax = p1.getX() - p0.getX();
         double deltaz = p1.getZ() - p0.getZ();
         int zInc = deltaz < 0 ? -1 : 1;
@@ -134,17 +132,17 @@ public class RoadBuilder {
         if (deltax == 0) { // verticle line
             for (int z = z0; compare(z, z1, zInc); z += zInc) {
                 BlockPos pos = new BlockPos(x0, 64, z);
-                plot(calculate_height(pos.east(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
-                plot(calculate_height(pos, p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
-                plot(calculate_height(pos.west(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                plot(calculate_height(pos.east(), p0, p1, segment_length), blockState, world, chunkProvider);
+                plot(calculate_height(pos, p0, p1, segment_length), blockState, world, chunkProvider);
+                plot(calculate_height(pos.west(), p0, p1, segment_length), blockState, world, chunkProvider);
                 //plot(calculate_height(new BlockPos(x0, 64, z), p0, p1, segment_length), Blocks.brick_block.getDefaultState(), world, chunkProvider);
             }
         } else if (deltaz == 0) {
             for (int x = x0; compare(x, x1, xInc); x += xInc) {
                 BlockPos pos = new BlockPos(x, 64, z0);
-                plot(calculate_height(pos.north(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
-                plot(calculate_height(pos, p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
-                plot(calculate_height(pos.south(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                plot(calculate_height(pos.north(), p0, p1, segment_length), blockState, world, chunkProvider);
+                plot(calculate_height(pos, p0, p1, segment_length), blockState, world, chunkProvider);
+                plot(calculate_height(pos.south(), p0, p1, segment_length), blockState, world, chunkProvider);
                 //calculate_height(plot(new BlockPos(x, 64, z0), p0, p1, segment_length), Blocks.coal_block.getDefaultState(), world, chunkProvider);
             }
         } else {
@@ -153,14 +151,14 @@ public class RoadBuilder {
             int z = p0.getZ();
             for (int x = x0; compare(x, x1, xInc); x += xInc) {
                 BlockPos blockPos = new BlockPos(x, 64, z);
-                BlockPos pos = new BlockPos(x, 64, z);
-                plot(calculate_height(pos, p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                BlockPos pos = calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length);
+                plot(pos, Blocks.stonebrick.getDefaultState(), world, chunkProvider);
                 if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) {
-                    plot(calculate_height(pos.north(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
-                    plot(calculate_height(pos.south(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                    plot(pos.north(), blockState, world, chunkProvider);
+                    plot(pos.south(), blockState, world, chunkProvider);
                 } else {
-                    plot(calculate_height(pos.east(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
-                    plot(calculate_height(pos.west(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                    plot(pos.east(), blockState, world, chunkProvider);
+                    plot(pos.west(), blockState, world, chunkProvider);
                 }
                //  plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.planks.getDefaultState(), world, chunkProvider);
 
@@ -168,31 +166,39 @@ public class RoadBuilder {
                 while (error >= 0.5) {
                     z = z + zInc;
                     error = error - 1.0;
-                    pos = new BlockPos(x, 64, z);
-                    plot(calculate_height(pos, p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                    pos = calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length);
+                    plot(pos, blockState, world, chunkProvider);
                     if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) {
-                        plot(calculate_height(pos.north(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
-                        plot(calculate_height(pos.south(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                        plot(pos.north(), blockState, world, chunkProvider);
+                        plot(pos.south(), blockState, world, chunkProvider);
                     } else {
-                        plot(calculate_height(pos.east(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
-                        plot(calculate_height(pos.west(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                        plot(pos.east(), blockState, world, chunkProvider);
+                        plot(pos.west(), blockState, world, chunkProvider);
                     }
                     //plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.red_mushroom_block.getDefaultState(), world, chunkProvider);
                 }
             }
         }
-        world.setBlockState(p0.up(3), Blocks.lit_pumpkin.getDefaultState());
+
+        for(int i = -1; i <= 1; i++) {
+            for (int j = -1; j <= 1; j++) {
+                plot(p0.east(i).north(j), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+                plot(p1.east(i).north(j), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+            }
+        }
+        world.setBlockState(p0.up(4), Blocks.lit_pumpkin.getDefaultState());
     }
     // Build a road from structure0 to structure1
     // returns true if road built successfully
+    public static List bad_biomes = Arrays.asList(new BiomeGenBase[]{
+            BiomeGenBase.deepOcean, BiomeGenBase.ocean, BiomeGenBase.frozenOcean
+    });
+
     public boolean buildRoad(Structure s0, Structure s1, Random random, World world, IChunkProvider chunkProvider) {
         point_list = new ArrayList<BlockPos>();
         Stack<BlockPos> stack = new Stack<BlockPos>();
         structure0 = s0;
         structure1 = s1;
-
-        // TODO validate that structures have road heads that are not in use
-        // TODO choose which road head to use for each structure
 
         Structure.RoadPoint pt0 = s0.selectRoadPoint(s1);
         if (pt0 == null) return false;
@@ -201,6 +207,8 @@ public class RoadBuilder {
 
         stack.push(pt1.getPosition());
         BlockPos p0 = pt0.getPosition();
+        BiomeGenBase biome = world.getBiomeGenForCoords(p0);
+        if (bad_biomes.contains(biome)) return false;
 
         double dx = pt1.getPosition().getX() - p0.getX();
         double dz = pt1.getPosition().getZ() - p0.getZ();
@@ -240,9 +248,13 @@ public class RoadBuilder {
             } else {
                 point_list.add(p0);
                 p0 = p1;
+                biome = world.getBiomeGenForCoords(p0);
+                if (bad_biomes.contains(biome)) return false;
             }
         }
         if (failed_tries >= MAX_FAILS) return false;
+        biome = world.getBiomeGenForCoords(p0);
+        if (bad_biomes.contains(biome)) return false;
         point_list.add(p0);
 
         // At this point our point list is filled in, do we need to build segment list
@@ -259,7 +271,7 @@ public class RoadBuilder {
             for (int i = 1; i < point_list.size(); i++) {
                 BlockPos p1 = point_list.get(i);
                 System.out.println(String.format(" -- segment %s to %s", p0, p1));
-                renderSegment(p0, p1, world, chunkProvider);
+                renderSegment(p0, p1, Blocks.stonebrick.getDefaultState(), world, chunkProvider);
                 p0 = p1;
                 /*
                 for (int j = 3; j < 10; j++)
@@ -267,10 +279,12 @@ public class RoadBuilder {
                     */
             }
         }
-        for (int j = 1; j < 10; j++) {
+        /*
+        for (int j = 5; j < 10; j++) {
             world.setBlockState(pt0.getPosition().up(j), Blocks.redstone_block.getDefaultState());
             world.setBlockState(pt1.getPosition().up(j), Blocks.lapis_block.getDefaultState());
         }
+        */
         return true;
     }
 }

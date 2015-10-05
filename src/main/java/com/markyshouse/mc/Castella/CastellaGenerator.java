@@ -43,7 +43,7 @@ public class CastellaGenerator  implements IWorldGenerator {
         switch (world.provider.getDimensionId()) {
             case 0: //Overworld
                 //System.out.println(" ** OVERWORLD chunk " + chunkX + ", " + chunkZ + " **");
-                NBTTagCompound regionData = markyData.getRegionDataFromChunk(chunkX, chunkZ);
+                //NBTTagCompound regionData = markyData.getRegionDataFromChunk(chunkX, chunkZ);
                 StructureFactory.getInstance().tryToBuildSomething(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
                 break;
             case -1: //Nether

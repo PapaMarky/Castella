@@ -162,10 +162,10 @@ public class TowerBuilder extends StructureBuilder {
         if (bridge_facing == null) return null;
         BlockPos door_position = null;
         // build the bridge
+        BlockPos p0 = null;
+        BlockPos p1 = null;
+        BlockPos p2 = null;
         for (int i = ledge; i < range; i++) {
-            BlockPos p0 = null;
-            BlockPos p1 = null;
-            BlockPos p2 = null;
             switch (bridge_facing) {
                 case EAST:
                     p0 = floor_center.east(i).north(1);
@@ -206,11 +206,10 @@ public class TowerBuilder extends StructureBuilder {
                     world.destroyBlock(p1.up(k), false);
                     world.destroyBlock(p2.up(k), false);
                 }
-                bridge_road_point = p1;
-                bridge_direction = bridge_facing;
-                break;
             }
         }
+        bridge_road_point = p1;
+        bridge_direction = bridge_facing;
 
         // Create the door opening
         switch(bridge_facing) {
