@@ -51,10 +51,29 @@ public class RoadBuilder {
     }
 
     private void plot(BlockPos blockPos, IBlockState blockState, World world, IChunkProvider chunkProvider) {
-        int h = chunkProvider.provideChunk(blockPos).getHeight(blockPos);
-        while (h > blockPos.getY()) {
-            world.destroyBlock(new BlockPos(blockPos.getX(), h, blockPos.getZ()), false);
-            h--;
+        Chunk chunk = chunkProvider.provideChunk(blockPos);
+        int h = chunk.getHeight(blockPos);
+        int n = 0;
+        final int TUNNEL_HEIGHT = 3;
+        BlockPos pos = blockPos.up();
+        int hh = pos.getY();
+        while (hh < h && n < TUNNEL_HEIGHT) {
+            if (TerrainMap.isGround(chunk.getBlock(pos))) {
+                n++;
+            }
+            pos = pos.up();
+            hh = pos.getY();
+        }
+        if (hh < h) {
+            // we're building a tunnel
+            world.destroyBlock(pos, false);
+            world.setBlockState(pos, Blocks.brick_block.getDefaultState());
+            hh--;
+        }
+        while (hh > blockPos.getY()) {
+            pos = new BlockPos(blockPos.getX(), hh, blockPos.getZ());
+            world.destroyBlock(pos, false);
+            hh--;
         }
         Block block2 = chunkProvider.provideChunk(blockPos.up()).getBlock(blockPos.up());
         while (TerrainMap.isLiquid(block2)) {
@@ -138,7 +157,7 @@ public class RoadBuilder {
                 }
             }
         }
-        world.setBlockState(p0.up(2), Blocks.diamond_block.getDefaultState());
+        world.setBlockState(p0.up(3), Blocks.lit_pumpkin.getDefaultState());
     }
     // Build a road from structure0 to structure1
     // returns true if road built successfully
