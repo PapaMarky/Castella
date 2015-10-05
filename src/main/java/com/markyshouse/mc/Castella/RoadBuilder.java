@@ -6,6 +6,7 @@ import net.minecraft.block.BlockSand;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
@@ -124,18 +125,26 @@ public class RoadBuilder {
 
         double segment_length = Math.sqrt(dx*dx + dz*dz);
 
+        EnumFacing direction = EnumFacing.getFacingFromVector((float)dx, 0, (float)dz);
+
         if (dy > segment_length) {
             System.out.println("TOO MUCH RISE IN ROAD");
         }
 
         if (deltax == 0) { // verticle line
             for (int z = z0; compare(z, z1, zInc); z += zInc) {
-                plot(calculate_height(new BlockPos(x0, 64, z), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                BlockPos pos = new BlockPos(x0, 64, z);
+                plot(calculate_height(pos.east(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                plot(calculate_height(pos, p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                plot(calculate_height(pos.west(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
                 //plot(calculate_height(new BlockPos(x0, 64, z), p0, p1, segment_length), Blocks.brick_block.getDefaultState(), world, chunkProvider);
             }
         } else if (deltaz == 0) {
             for (int x = x0; compare(x, x1, xInc); x += xInc) {
-                plot(calculate_height(new BlockPos(x, 64, z0), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                BlockPos pos = new BlockPos(x, 64, z0);
+                plot(calculate_height(pos.north(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                plot(calculate_height(pos, p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                plot(calculate_height(pos.south(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
                 //calculate_height(plot(new BlockPos(x, 64, z0), p0, p1, segment_length), Blocks.coal_block.getDefaultState(), world, chunkProvider);
             }
         } else {
@@ -144,15 +153,30 @@ public class RoadBuilder {
             int z = p0.getZ();
             for (int x = x0; compare(x, x1, xInc); x += xInc) {
                 BlockPos blockPos = new BlockPos(x, 64, z);
-                plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                BlockPos pos = new BlockPos(x, 64, z);
+                plot(calculate_height(pos, p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) {
+                    plot(calculate_height(pos.north(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                    plot(calculate_height(pos.south(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                } else {
+                    plot(calculate_height(pos.east(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                    plot(calculate_height(pos.west(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                }
                //  plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.planks.getDefaultState(), world, chunkProvider);
 
                 error = error + deltaerr;
                 while (error >= 0.5) {
                     z = z + zInc;
                     error = error - 1.0;
-
-                    plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                    pos = new BlockPos(x, 64, z);
+                    plot(calculate_height(pos, p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                    if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) {
+                        plot(calculate_height(pos.north(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                        plot(calculate_height(pos.south(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                    } else {
+                        plot(calculate_height(pos.east(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                        plot(calculate_height(pos.west(), p0, p1, segment_length), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                    }
                     //plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.red_mushroom_block.getDefaultState(), world, chunkProvider);
                 }
             }
