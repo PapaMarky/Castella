@@ -253,6 +253,7 @@ public class RoadBuilder {
             }
         }
         if (failed_tries >= MAX_FAILS) return false;
+
         biome = world.getBiomeGenForCoords(p0);
         if (bad_biomes.contains(biome)) return false;
         point_list.add(p0);
@@ -263,6 +264,26 @@ public class RoadBuilder {
         System.out.println(String.format("Rendering Road from %s to %s", structure0.position.toString(), structure1.position.toString()));
 
         if (point_list.size() > 2) {
+            // Smooth out anomolous points
+            if (point_list.size() > 3) {
+                for(int i = 3; i < point_list.size(); i++) {
+                    int y0 = point_list.get(i - 2).getY();
+                    int y1 = point_list.get(i - 1).getY();
+                    int y2 = point_list.get(i).getY();
+
+                    int d0 = Math.abs(y1 - y0);
+                    int d1 = Math.abs(y1 - y2);
+                    int dmin = Math.min(Math.abs(y1 - y0), Math.abs(y2 - y1));
+
+                    if (((y0 < y1 && y2 < y1) || (y0 > y1 && y2 > y1)) && d0 > 5 && d1 > 5) {
+                        int x = (point_list.get(i-2).getX() + point_list.get(i).getX()) / 2;
+                        int y = (y0 + y2) / 2;
+                        int z = (point_list.get(i-2).getZ() + point_list.get(i).getZ()) / 2;
+
+                        point_list.set(i - 1, new BlockPos(x, y, z));
+                    }
+                }
+            }
             p0 = point_list.get(0);
             /*
             for (int ii = 3; ii < 10; ii++)
