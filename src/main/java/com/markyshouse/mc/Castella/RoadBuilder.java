@@ -105,7 +105,93 @@ public class RoadBuilder {
 
         double h = start.getY() + pct * (end.getY() - start.getY());
 
-        return new BlockPos(b.getX(), Math.round(h), b.getZ());
+        return new BlockPos(b.getX(), Math.floor(h), b.getZ());
+    }
+
+    private void renderNorthSouthSegment(BlockPos p0, BlockPos p1, EnumFacing direction, double segment_length, IBlockState blockState, World world, IChunkProvider chunkProvider) {
+        double deltax = p1.getX() - p0.getX();
+        double deltaz = p1.getZ() - p0.getZ();
+        int zInc = deltaz < 0 ? -1 : 1;
+        int xInc = deltax < 0 ? -1 : 1;
+        double error = 0;
+        double deltaerr = Math.abs(deltax / deltaz);
+        int z0 = p0.getZ();
+        int x = p0.getX();
+        int z1 = p1.getZ();
+        for (int z = z0; compare(z, z1, zInc); z += zInc) {
+            BlockPos pos = calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length);
+            plot(pos, Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+            plot(pos.east(), blockState, world, chunkProvider);
+            plot(pos.west(), blockState, world, chunkProvider);
+            //  plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.planks.getDefaultState(), world, chunkProvider);
+
+            error = error + deltaerr;
+            while (error >= 0.5) {
+                x = x + xInc;
+                error = error - 1.0;
+                //pos = calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length);
+                // plot(pos, blockState, world, chunkProvider);
+                if (xInc > 0)
+                    plot(pos.east(), blockState, world, chunkProvider);
+                else
+                    plot(pos.west(), blockState, world, chunkProvider);
+                //plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.red_mushroom_block.getDefaultState(), world, chunkProvider);
+            }
+        }
+
+        // TODO - this needs to pay attention to direction
+        plot(p0.east(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        plot(p0, Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        plot(p0.west(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+
+        plot(p1.east(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        plot(p1, Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        plot(p1.west(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+
+        world.setBlockState(p0.up(4), Blocks.lit_pumpkin.getDefaultState());
+    }
+    private void renderEastWestSegment(BlockPos p0, BlockPos p1, EnumFacing direction, double segment_length, IBlockState blockState, World world, IChunkProvider chunkProvider) {
+        double deltax = p1.getX() - p0.getX();
+        double deltaz = p1.getZ() - p0.getZ();
+        int zInc = deltaz < 0 ? -1 : 1;
+        int xInc = deltax < 0 ? -1 : 1;
+        double error = 0;
+        double deltaerr = Math.abs(deltaz / deltax);
+        int z = p0.getZ();
+        int x0 = p0.getX();
+        int x1 = p1.getX();
+        for (int x = x0; compare(x, x1, xInc); x += xInc) {
+            BlockPos pos = calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length);
+            plot(pos, Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+            plot(pos.north(), blockState, world, chunkProvider);
+            plot(pos.south(), blockState, world, chunkProvider);
+            //  plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.planks.getDefaultState(), world, chunkProvider);
+
+            error = error + deltaerr;
+            while (error >= 0.5) {
+                z = z + zInc;
+                error = error - 1.0;
+                //pos = calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length);
+                // plot(pos, blockState, world, chunkProvider);
+
+                if (zInc > 0)
+                    plot(pos.south(), blockState, world, chunkProvider);
+                else
+                    plot(pos.north(), blockState, world, chunkProvider);
+                //plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.red_mushroom_block.getDefaultState(), world, chunkProvider);
+            }
+        }
+
+        // TODO - this needs to pay attention to direction
+        plot(p0.north(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        plot(p0, Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        plot(p0.south(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+
+        plot(p1.north(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        plot(p1, Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        plot(p1.south(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+
+        world.setBlockState(p0.up(4), Blocks.lit_pumpkin.getDefaultState());
     }
     private void renderSegment(BlockPos p0, BlockPos p1, IBlockState blockState, World world, IChunkProvider chunkProvider) {
         double deltax = p1.getX() - p0.getX();
@@ -123,11 +209,11 @@ public class RoadBuilder {
 
         double segment_length = Math.sqrt(dx*dx + dz*dz);
 
-        EnumFacing direction = EnumFacing.getFacingFromVector((float)dx, 0, (float)dz);
-
         if (dy > segment_length) {
             System.out.println("TOO MUCH RISE IN ROAD");
         }
+
+        EnumFacing direction = EnumFacing.getFacingFromVector((float)dx, 0, (float)dz);
 
         if (deltax == 0) { // verticle line
             for (int z = z0; compare(z, z1, zInc); z += zInc) {
@@ -146,47 +232,12 @@ public class RoadBuilder {
                 //calculate_height(plot(new BlockPos(x, 64, z0), p0, p1, segment_length), Blocks.coal_block.getDefaultState(), world, chunkProvider);
             }
         } else {
-            double error = 0;
-            double deltaerr = Math.abs(deltaz / deltax);
-            int z = p0.getZ();
-            for (int x = x0; compare(x, x1, xInc); x += xInc) {
-                BlockPos blockPos = new BlockPos(x, 64, z);
-                BlockPos pos = calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length);
-                plot(pos, Blocks.stonebrick.getDefaultState(), world, chunkProvider);
-                if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) {
-                    plot(pos.north(), blockState, world, chunkProvider);
-                    plot(pos.south(), blockState, world, chunkProvider);
-                } else {
-                    plot(pos.east(), blockState, world, chunkProvider);
-                    plot(pos.west(), blockState, world, chunkProvider);
-                }
-               //  plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.planks.getDefaultState(), world, chunkProvider);
-
-                error = error + deltaerr;
-                while (error >= 0.5) {
-                    z = z + zInc;
-                    error = error - 1.0;
-                    pos = calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length);
-                    plot(pos, blockState, world, chunkProvider);
-                    if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) {
-                        plot(pos.north(), blockState, world, chunkProvider);
-                        plot(pos.south(), blockState, world, chunkProvider);
-                    } else {
-                        plot(pos.east(), blockState, world, chunkProvider);
-                        plot(pos.west(), blockState, world, chunkProvider);
-                    }
-                    //plot(calculate_height(new BlockPos(x, 64, z), p0, p1, segment_length), Blocks.red_mushroom_block.getDefaultState(), world, chunkProvider);
-                }
+            if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) {
+                renderEastWestSegment(p0, p1, direction, segment_length, blockState, world, chunkProvider);
+            } else {
+                renderNorthSouthSegment(p0, p1, direction, segment_length, blockState, world, chunkProvider);
             }
         }
-
-        for(int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                plot(p0.east(i).north(j), Blocks.gold_block.getDefaultState(), world, chunkProvider);
-                plot(p1.east(i).north(j), Blocks.gold_block.getDefaultState(), world, chunkProvider);
-            }
-        }
-        world.setBlockState(p0.up(4), Blocks.lit_pumpkin.getDefaultState());
     }
     // Build a road from structure0 to structure1
     // returns true if road built successfully
@@ -228,7 +279,7 @@ public class RoadBuilder {
             dy = Math.abs(p1.getY() - p0.getY());
 
             distance = Math.sqrt(dx*dx + dz*dz);
-            if (dy > distance) {
+            if (dy > Math.floor(distance)) {
                 failed_tries++;
                 if (stack.isEmpty()) return false;
                 continue;
@@ -266,6 +317,7 @@ public class RoadBuilder {
         if (point_list.size() > 2) {
             // Smooth out anomolous points
             if (point_list.size() > 3) {
+                // TODO - This misses an endpoint (I think)
                 for(int i = 3; i < point_list.size(); i++) {
                     int y0 = point_list.get(i - 2).getY();
                     int y1 = point_list.get(i - 1).getY();
@@ -275,7 +327,7 @@ public class RoadBuilder {
                     int d1 = Math.abs(y1 - y2);
                     int dmin = Math.min(Math.abs(y1 - y0), Math.abs(y2 - y1));
 
-                    if (((y0 < y1 && y2 < y1) || (y0 > y1 && y2 > y1)) && d0 > 5 && d1 > 5) {
+                    if (((y0 < y1 && y2 < y1) || (y0 > y1 && y2 > y1)) && d0 >= 5 && d1 >= 5) {
                         int x = (point_list.get(i-2).getX() + point_list.get(i).getX()) / 2;
                         int y = (y0 + y2) / 2;
                         int z = (point_list.get(i-2).getZ() + point_list.get(i).getZ()) / 2;
