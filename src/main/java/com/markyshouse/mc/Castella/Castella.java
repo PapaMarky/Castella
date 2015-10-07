@@ -14,7 +14,7 @@ import net.minecraftforge.common.config.Configuration;
 // TODO study TerrainGen class, PopulateChunkEvent
 // TODO event handling in general
 
-@Mod(modid = Castella.MODID, version = Castella.VERSION)
+@Mod(modid = Castella.MODID, version = Castella.VERSION, acceptableRemoteVersions = "*")
 public class Castella
 {
     public static final String MODID = "castella";
