@@ -4,6 +4,7 @@ import com.markyshouse.mc.*;
 import net.minecraft.block.*;
 import net.minecraft.block.state.BlockState;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.BlockPos;
@@ -16,6 +17,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.structure.MapGenStructureData;
 import net.minecraft.world.storage.MapStorage;
+import net.minecraftforge.common.IPlantable;
 
 import java.util.*;
 
@@ -57,6 +59,7 @@ public abstract class StructureBuilder {
     public char[][] footprint;
 
     public static final int TOWER_TYPE = 1;
+    public static final int INTERSECTION_TYPE = 2;
     abstract public int getType();
 
     public boolean biomeIsInList(BiomeGenBase biome, List biome_list) {
@@ -317,11 +320,67 @@ public abstract class StructureBuilder {
     abstract public StructureBoundingBox2D getTerritoryBox(BlockPos origin);
 
     abstract public void buildInner(Structure structure, BlockPos origin, TerrainMap map, Random random, World world, IChunkProvider chunkProvider);
+    public int getWidth() {
+        return footprint[0].length;
+    }
+    public int getHeight() {
+        return footprint.length;
+    }
+    protected  IBlockState[][] mapGroundCover(BlockPos origin, Random random, World world, IChunkProvider chunkProvider) {
+        int width = getWidth();
+        int height = getHeight();
+
+        IBlockState[][] plantmap = new IBlockState[width][height];
+        for (int x = 0; x < width; x++) {
+            for (int z = 0; z < height; z++) {
+                if (footprint[x][z] == ' ') continue;
+
+                BlockPos p = new BlockPos(origin.getX() + x, 64, origin.getZ() + z);
+                Chunk chunk = chunkProvider.provideChunk(p);
+                int h = chunk.getHeight(p);
+                p = new BlockPos(p.getX(), h, p.getZ());
+                Block block = chunk.getBlock(p);
+                while (!TerrainMap.isGround(block)) {
+                    p = p.down();
+                    block = chunk.getBlock(p);
+                }
+                int ground_level = p.getY();
+                Block cover = chunk.getBlock(p.up());
+                if (cover instanceof IPlantable) {
+                    plantmap[x][z] = world.getBlockState(p.up()); // cover.getActualState(cover.getDefaultState(), world, p.up());
+                } else if (cover instanceof BlockLog) {
+                    IBlockState cover_bs = cover.getActualState(cover.getDefaultState(), world, p.up());
+                    IBlockState sapling_bs = null;
+
+                    if (cover instanceof BlockNewLog)
+                        sapling_bs = Blocks.sapling.getDefaultState().withProperty(BlockSapling.TYPE, cover_bs.getValue(BlockNewLog.VARIANT));
+                    else
+                        sapling_bs = Blocks.sapling.getDefaultState().withProperty(BlockSapling.TYPE, cover_bs.getValue(BlockOldLog.VARIANT));
+                    sapling_bs = sapling_bs.withProperty(BlockSapling.STAGE, Integer.valueOf(1));
+                    plantmap[x][z] = sapling_bs;
+                }
+
+                // now destroy everything between ground_level & h
+                while (h > ground_level) {
+                    BlockPos pos = new BlockPos(p.getX(), h, p.getZ());
+                    Block block1 = chunk.getBlock(pos);
+                    if (block1 instanceof  BlockLeaves || block1 instanceof BlockLog) {
+                        block1.breakBlock(world, pos, block1.getDefaultState());}
+                    if ((footprint[x][z] < '0' && footprint[x][z] > '9') || block1 instanceof IPlantable || block1 instanceof BlockLog)
+                        world.destroyBlock(pos, false);
+                    h--;
+                }
+            }
+        }
+        return plantmap;
+    }
 
     private static char[][] getFootprint(int t) {
         switch (t) {
             case TOWER_TYPE:
                 return TowerBuilder.getFootprint();
+            case INTERSECTION_TYPE:
+                return IntersectionBuilder.getFootprint();
         }
         return null;
     }

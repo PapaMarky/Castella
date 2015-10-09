@@ -108,7 +108,9 @@ public class RoadBuilder {
         return new BlockPos(b.getX(), Math.floor(h), b.getZ());
     }
 
-    private void renderNorthSouthSegment(BlockPos p0, BlockPos p1, EnumFacing direction, double segment_length, IBlockState blockState, World world, IChunkProvider chunkProvider) {
+    private void renderNorthSouthSegment(BlockPos p0, BlockPos p1,
+                                         EnumFacing direction, double segment_length, boolean last_segment,
+                                         IBlockState blockState, World world, IChunkProvider chunkProvider) {
         double deltax = p1.getX() - p0.getX();
         double deltaz = p1.getZ() - p0.getZ();
         int zInc = deltaz < 0 ? -1 : 1;
@@ -139,18 +141,22 @@ public class RoadBuilder {
             }
         }
 
-        // TODO - this needs to pay attention to direction
+        /*
         plot(p0.east(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
         plot(p0, Blocks.gold_block.getDefaultState(), world, chunkProvider);
         plot(p0.west(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
-
-        plot(p1.east(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
-        plot(p1, Blocks.gold_block.getDefaultState(), world, chunkProvider);
-        plot(p1.west(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
-
+        */
+        if (last_segment) {
+            BlockPos pos = calculate_height(p1, p0, p1, segment_length);
+            plot(pos.east(), Blocks.lapis_block.getDefaultState(), world, chunkProvider);
+            plot(pos, Blocks.lapis_block.getDefaultState(), world, chunkProvider);
+            plot(pos.west(), Blocks.lapis_block.getDefaultState(), world, chunkProvider);
+        }
         world.setBlockState(p0.up(4), Blocks.lit_pumpkin.getDefaultState());
     }
-    private void renderEastWestSegment(BlockPos p0, BlockPos p1, EnumFacing direction, double segment_length, IBlockState blockState, World world, IChunkProvider chunkProvider) {
+    private void renderEastWestSegment(BlockPos p0, BlockPos p1,
+                                       EnumFacing direction, double segment_length, boolean last_segment,
+                                       IBlockState blockState, World world, IChunkProvider chunkProvider) {
         double deltax = p1.getX() - p0.getX();
         double deltaz = p1.getZ() - p0.getZ();
         int zInc = deltaz < 0 ? -1 : 1;
@@ -182,18 +188,22 @@ public class RoadBuilder {
             }
         }
 
-        // TODO - this needs to pay attention to direction
-        plot(p0.north(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
-        plot(p0, Blocks.gold_block.getDefaultState(), world, chunkProvider);
-        plot(p0.south(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
-
-        plot(p1.north(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
-        plot(p1, Blocks.gold_block.getDefaultState(), world, chunkProvider);
-        plot(p1.south(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
-
+        /*
+        BlockPos pos = calculate_height(p0, p0, p1, segment_length);
+        plot(pos.north(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        plot(pos, Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        plot(pos.south(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        */
+        if (last_segment) {
+            BlockPos pos = calculate_height(p1, p0, p1, segment_length);
+            plot(pos.north(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+            plot(pos, Blocks.gold_block.getDefaultState(), world, chunkProvider);
+            plot(pos.south(), Blocks.gold_block.getDefaultState(), world, chunkProvider);
+        }
         world.setBlockState(p0.up(4), Blocks.lit_pumpkin.getDefaultState());
     }
-    private void renderSegment(BlockPos p0, BlockPos p1, IBlockState blockState, World world, IChunkProvider chunkProvider) {
+    private void renderSegment(BlockPos p0, BlockPos p1, IBlockState blockState, boolean lastSegment,
+                               World world, IChunkProvider chunkProvider) {
         double deltax = p1.getX() - p0.getX();
         double deltaz = p1.getZ() - p0.getZ();
         int zInc = deltaz < 0 ? -1 : 1;
@@ -217,25 +227,25 @@ public class RoadBuilder {
 
         if (deltax == 0) { // verticle line
             for (int z = z0; compare(z, z1, zInc); z += zInc) {
-                BlockPos pos = new BlockPos(x0, 64, z);
-                plot(calculate_height(pos.east(), p0, p1, segment_length), blockState, world, chunkProvider);
-                plot(calculate_height(pos, p0, p1, segment_length), blockState, world, chunkProvider);
-                plot(calculate_height(pos.west(), p0, p1, segment_length), blockState, world, chunkProvider);
+                BlockPos pos = calculate_height(new BlockPos(x0, 64, z), p0, p1, segment_length);
+                plot(pos.east(), blockState, world, chunkProvider);
+                plot(pos, blockState, world, chunkProvider);
+                plot(pos.west(), blockState, world, chunkProvider);
                 //plot(calculate_height(new BlockPos(x0, 64, z), p0, p1, segment_length), Blocks.brick_block.getDefaultState(), world, chunkProvider);
             }
         } else if (deltaz == 0) {
             for (int x = x0; compare(x, x1, xInc); x += xInc) {
-                BlockPos pos = new BlockPos(x, 64, z0);
-                plot(calculate_height(pos.north(), p0, p1, segment_length), blockState, world, chunkProvider);
-                plot(calculate_height(pos, p0, p1, segment_length), blockState, world, chunkProvider);
-                plot(calculate_height(pos.south(), p0, p1, segment_length), blockState, world, chunkProvider);
+                BlockPos pos = calculate_height(new BlockPos(x, 64, z0), p0, p1, segment_length);
+                plot(pos.north(), blockState, world, chunkProvider);
+                plot(pos, blockState, world, chunkProvider);
+                plot(pos.south(), blockState, world, chunkProvider);
                 //calculate_height(plot(new BlockPos(x, 64, z0), p0, p1, segment_length), Blocks.coal_block.getDefaultState(), world, chunkProvider);
             }
         } else {
             if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) {
-                renderEastWestSegment(p0, p1, direction, segment_length, blockState, world, chunkProvider);
+                renderEastWestSegment(p0, p1, direction, segment_length, lastSegment, blockState, world, chunkProvider);
             } else {
-                renderNorthSouthSegment(p0, p1, direction, segment_length, blockState, world, chunkProvider);
+                renderNorthSouthSegment(p0, p1, direction, segment_length, lastSegment, blockState, world, chunkProvider);
             }
         }
     }
@@ -279,7 +289,7 @@ public class RoadBuilder {
             dy = Math.abs(p1.getY() - p0.getY());
 
             distance = Math.sqrt(dx*dx + dz*dz);
-            if (dy > Math.floor(distance)) {
+            if (dy > Math.floor( 4.0 * distance / 5.0)) {
                 failed_tries++;
                 if (stack.isEmpty()) return false;
                 continue;
@@ -293,6 +303,15 @@ public class RoadBuilder {
                 center = center.east((int)Math.floor(jitterX)).south((int) Math.floor(jitterZ));
                 int h = TerrainMap.getGroundOrWaterLevel(center, world, chunkProvider);
                 center = new BlockPos(center.getX(), h, center.getZ());
+                while (world.isAirBlock(center))
+                    center = center.down();
+
+                dy = Math.abs(p1.getY() - center.getY());
+                if (dy > Math.floor( 4.0 * distance / 5.0)) {
+                    failed_tries++;
+                    if (stack.isEmpty()) return false;
+                    continue;
+                }
 
                 stack.push(p1);
                 stack.push(center);
@@ -312,7 +331,7 @@ public class RoadBuilder {
         // At this point our point list is filled in, do we need to build segment list
         pt0.setUsed();
         pt1.setUsed();
-        System.out.println(String.format("Rendering Road from %s to %s", structure0.position.toString(), structure1.position.toString()));
+        //System.out.println(String.format("Rendering Road from %s to %s", structure0.position.toString(), structure1.position.toString()));
 
         if (point_list.size() > 2) {
             // Smooth out anomolous points
@@ -343,8 +362,8 @@ public class RoadBuilder {
                 */
             for (int i = 1; i < point_list.size(); i++) {
                 BlockPos p1 = point_list.get(i);
-                System.out.println(String.format(" -- segment %s to %s", p0, p1));
-                renderSegment(p0, p1, Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                //System.out.println(String.format(" -- segment %s to %s", p0, p1));
+                renderSegment(p0, p1, Blocks.stonebrick.getDefaultState(), (i == (point_list.size() - 1)), world, chunkProvider);
                 p0 = p1;
                 /*
                 for (int j = 3; j < 10; j++)

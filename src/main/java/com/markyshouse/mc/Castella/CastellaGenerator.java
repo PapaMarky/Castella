@@ -1,12 +1,9 @@
 package com.markyshouse.mc.Castella;
 
 import com.markyshouse.mc.MarkyshouseWorldSavedData;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.storage.WorldInfo;
 import net.minecraftforge.fml.common.IWorldGenerator;
 
 import java.util.HashMap;
@@ -32,6 +29,7 @@ public class CastellaGenerator  implements IWorldGenerator {
 
         // Register the Structure Builders
         StructureFactory.getInstance().register(new TowerBuilder());
+        StructureFactory.getInstance().register(new IntersectionBuilder());
     }
 
     @Override

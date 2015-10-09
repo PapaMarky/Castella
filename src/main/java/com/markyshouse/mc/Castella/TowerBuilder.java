@@ -58,7 +58,7 @@ public class TowerBuilder extends StructureBuilder {
 
     boolean hasDoors = true;
     protected static char[][] getFootprint() { return tower_footprint; }
-    public static List towerSpawnBiomes = Arrays.asList(new BiomeGenBase[]{
+    public static final List towerSpawnBiomes = Arrays.asList(new BiomeGenBase[]{
             BiomeGenBase.plains, BiomeGenBase.desert, BiomeGenBase.savanna, BiomeGenBase.beach,
             BiomeGenBase.birchForest, BiomeGenBase.birchForestHills, BiomeGenBase.coldBeach, BiomeGenBase.coldTaiga,
             BiomeGenBase.coldTaigaHills, BiomeGenBase.desertHills, BiomeGenBase.extremeHills, BiomeGenBase.extremeHillsEdge,
@@ -82,7 +82,7 @@ public class TowerBuilder extends StructureBuilder {
         return towerSpawnBiomes;
     }
     public StructureBoundingBox2D getTerritoryBox(BlockPos origin) {
-        int area = 64; // this much room on all sides
+        int area = 32; // this much room on all sides
         return new StructureBoundingBox2D(origin.getX() - area, origin.getZ() - area, origin.getX() + getWidth() + area, origin.getZ() + getHeight() + area);
     }
     public int getType() { return StructureBuilder.TOWER_TYPE; }
@@ -312,12 +312,6 @@ public class TowerBuilder extends StructureBuilder {
         // ladder vs spiral stair case
         ladder_facing = ladder_facing.rotateY();
     }
-    public int getWidth() {
-        return footprint[0].length;
-    }
-    public int getHeight() {
-        return footprint.length;
-    }
 
     public void init(Random random) {
 
@@ -333,54 +327,6 @@ public class TowerBuilder extends StructureBuilder {
         bridge_road_point = null;
     }
 
-    protected  IBlockState[][] mapGroundCover(BlockPos origin, Random random, World world, IChunkProvider chunkProvider) {
-        int width = getWidth();
-        int height = getHeight();
-
-        IBlockState[][] plantmap = new IBlockState[width][height];
-        for (int x = 0; x < width; x++) {
-            for (int z = 0; z < height; z++) {
-                if (footprint[x][z] == ' ') continue;
-
-                BlockPos p = new BlockPos(origin.getX() + x, 64, origin.getZ() + z);
-                Chunk chunk = chunkProvider.provideChunk(p);
-                int h = chunk.getHeight(p);
-                p = new BlockPos(p.getX(), h, p.getZ());
-                Block block = chunk.getBlock(p);
-                while (!TerrainMap.isGround(block)) {
-                    p = p.down();
-                    block = chunk.getBlock(p);
-                }
-                int ground_level = p.getY();
-                Block cover = chunk.getBlock(p.up());
-                if (cover instanceof IPlantable) {
-                    plantmap[x][z] = world.getBlockState(p.up()); // cover.getActualState(cover.getDefaultState(), world, p.up());
-                } else if (cover instanceof BlockLog) {
-                    IBlockState cover_bs = cover.getActualState(cover.getDefaultState(), world, p.up());
-                    IBlockState sapling_bs = null;
-
-                    if (cover instanceof BlockNewLog)
-                        sapling_bs = Blocks.sapling.getDefaultState().withProperty(BlockSapling.TYPE, cover_bs.getValue(BlockNewLog.VARIANT));
-                    else
-                        sapling_bs = Blocks.sapling.getDefaultState().withProperty(BlockSapling.TYPE, cover_bs.getValue(BlockOldLog.VARIANT));
-                    sapling_bs = sapling_bs.withProperty(BlockSapling.STAGE, Integer.valueOf(1));
-                    plantmap[x][z] = sapling_bs;
-                }
-
-                // now destroy everything between ground_level & h
-                while (h > ground_level) {
-                    BlockPos pos = new BlockPos(p.getX(), h, p.getZ());
-                    Block block1 = chunk.getBlock(pos);
-                    if (block1 instanceof  BlockLeaves || block1 instanceof BlockLog) {
-                        block1.breakBlock(world, pos, block1.getDefaultState());}
-                    if ((footprint[x][z] < '0' && footprint[x][z] > '9') || block1 instanceof IPlantable || block1 instanceof BlockLog)
-                        world.destroyBlock(pos, false);
-                    h--;
-                }
-            }
-        }
-        return plantmap;
-    }
     public void buildInner(Structure structure, BlockPos position, TerrainMap map, Random random, World world, IChunkProvider chunkProvider) {
         System.out.println(" ##### BUILDING TOWER AT " + position.getX() + ", " + position.getY() + ", " + position.getZ());
         init(random);

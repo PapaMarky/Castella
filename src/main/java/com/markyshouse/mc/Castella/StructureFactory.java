@@ -43,7 +43,12 @@ public class StructureFactory {
         if (structureBuilders.size() <= 0) return null;
         StructureBuilder builder = null;
 
-        int index = random.nextInt(structureBuilders.size());
+        // TODO - this is ugly. Make the register function take a weight value
+        int index = 1; // random.nextInt(structureBuilders.size());
+        float f = random.nextFloat();
+        if(f < 0.25) {
+            index = 0;
+        }
         builder = structureBuilders.get(index);
 
         Structure s = builder.tryToBuildHere(chunkX * 16, chunkZ * 16, random, world, chunkProvider);
