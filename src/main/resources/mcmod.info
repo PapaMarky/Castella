@@ -1,14 +1,14 @@
 [
 {
-  "modid": "examplemod",
-  "name": "Example Mod",
-  "description": "Example placeholder mod.",
+  "modid": "castella",
+  "name": "Marky's House Castella",
+  "description": "Buildings and Roads",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",
   "updateUrl": "",
-  "authorList": ["ExampleDude"],
-  "credits": "The Forge and FML guys, for making this example",
+  "authorList": ["PapaMarky"],
+  "credits": "",
   "logoFile": "",
   "screenshots": [],
   "dependencies": []
