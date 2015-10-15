@@ -2,6 +2,7 @@ package com.markyshouse.mc.Castella;
 
 import com.markyshouse.mc.TerrainMap;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockStairs;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
@@ -101,6 +102,9 @@ public class RoadBuilder {
         return new BlockPos(b.getX(), Math.round(h), b.getZ());
     }
 
+    public enum BlockSlope {
+        UP, FLAT, DOWN
+    }
     public class RoadBlock {
         public BlockPos pos;
         public int left;
@@ -110,6 +114,7 @@ public class RoadBuilder {
         public int waterLevel;
         public int groundLevel;
         public int roadLevel;
+        public BlockSlope slope;
     }
 
     ArrayList<RoadBlock> blockList = new ArrayList<RoadBlock>();
@@ -125,6 +130,7 @@ public class RoadBuilder {
         block.waterLevel = -1;
         block.groundLevel = -1;
         block.roadLevel = pos.getY();
+        block.slope = BlockSlope.FLAT;
 
         int h = chunk.getHeight(pos);
         pos = new BlockPos(pos.getX(), h, pos.getZ());
@@ -143,7 +149,7 @@ public class RoadBuilder {
 
     private void renderNorthSouthSegment(BlockPos p0, BlockPos p1,
                                          EnumFacing direction, double segment_length, boolean last_segment,
-                                         IBlockState blockState, World world, IChunkProvider chunkProvider) {
+                                         World world, IChunkProvider chunkProvider) {
         double deltax = p1.getX() - p0.getX();
         double deltaz = p1.getZ() - p0.getZ();
         int zInc = deltaz < 0 ? -1 : 1;
@@ -164,14 +170,14 @@ public class RoadBuilder {
                 if (xInc > 0) {
                     // facing north, east is right
                     if (direction == EnumFacing.NORTH)
-                        block.left++;
-                    else
                         block.right++;
+                    else
+                        block.left++;
                 } else {
                     if (direction == EnumFacing.NORTH)
-                        block.right++;
-                    else
                         block.left++;
+                    else
+                        block.right++;
                 }
             }
         }
@@ -183,7 +189,7 @@ public class RoadBuilder {
     }
     private void renderEastWestSegment(BlockPos p0, BlockPos p1,
                                        EnumFacing direction, double segment_length, boolean last_segment,
-                                       IBlockState blockState, World world, IChunkProvider chunkProvider) {
+                                       World world, IChunkProvider chunkProvider) {
         double deltax = p1.getX() - p0.getX();
         double deltaz = p1.getZ() - p0.getZ();
         int zInc = deltaz < 0 ? -1 : 1;
@@ -204,14 +210,14 @@ public class RoadBuilder {
 
                 if (zInc > 0) {
                     if (direction == EnumFacing.EAST)
-                        block.left++;
-                    else
                         block.right++;
+                    else
+                        block.left++;
                 } else {
                     if (direction == EnumFacing.EAST)
-                        block.right++;
-                    else
                         block.left++;
+                    else
+                        block.right++;
                 }
             }
         }
@@ -256,9 +262,9 @@ public class RoadBuilder {
             }
         } else {
             if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) {
-                renderEastWestSegment(p0, p1, direction, segment_length, lastSegment, blockState, world, chunkProvider);
+                renderEastWestSegment(p0, p1, direction, segment_length, lastSegment, world, chunkProvider);
             } else {
-                renderNorthSouthSegment(p0, p1, direction, segment_length, lastSegment, blockState, world, chunkProvider);
+                renderNorthSouthSegment(p0, p1, direction, segment_length, lastSegment, world, chunkProvider);
             }
         }
     }
@@ -403,30 +409,62 @@ public class RoadBuilder {
 */
             for (int i = 0; i < blockList.size(); i++) {
                 RoadBlock roadBlock = blockList.get(i);
-                plot(roadBlock.pos, Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                IBlockState blockState = Blocks.stonebrick.getDefaultState();
+                BlockPos pos = roadBlock.pos;
+                if (i + 1 < blockList.size()) {
+                    RoadBlock nextBlock = blockList.get(i+1);
+                    int nextY = nextBlock.pos.getY();
+                    if (nextY < pos.getY()) {
+                        blockState = Blocks.stone_brick_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.BOTTOM).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, roadBlock.direction.getOpposite());
+                        /*
+                        if (roadBlock.direction == EnumFacing.EAST) {
+                            if (nextBlock.pos.getZ() < pos.getZ()) {
+                                roadBlock.right++;
+                                nextBlock.left++;
+                            } else if (nextBlock.pos.getZ() > pos.getZ()) {
+                                roadBlock.left++;
+                                nextBlock.right++;
+                            }
+                        }
+                        if (roadBlock.direction == EnumFacing.WEST) {
+                            if (nextBlock.pos.getZ() < pos.getZ()) {
+                                roadBlock.left++;
+                                nextBlock.right++;
+                            } else if (nextBlock.pos.getZ() > pos.getZ()) {
+                                roadBlock.right++;
+                                nextBlock.left++;
+                            }
+                        }
+                        */
+                    } else if (nextY > pos.getY()) {
+                        blockState = Blocks.stone_brick_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.BOTTOM).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, roadBlock.direction);
+                        pos = pos.up();
+                    }
+                }
+                plot(pos, blockState, world, chunkProvider);
                 if (roadBlock.direction == EnumFacing.EAST) {
                         for (int l = 0; l < roadBlock.left; l++)
-                            plot(roadBlock.pos.north(), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                            plot(pos.north(l + 1), blockState, world, chunkProvider);
                         for (int r = 0; r < roadBlock.right; r++)
-                            plot(roadBlock.pos.south(), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                            plot(pos.south(r + 1), blockState, world, chunkProvider);
                 }
                 if (roadBlock.direction == EnumFacing.WEST) {
                     for (int l = 0; l < roadBlock.left; l++)
-                        plot(roadBlock.pos.south(), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                        plot(pos.south(l + 1), blockState, world, chunkProvider);
                     for (int r = 0; r < roadBlock.right; r++)
-                        plot(roadBlock.pos.north(), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                        plot(pos.north(r + 1), blockState, world, chunkProvider);
                 }
                 if (roadBlock.direction == EnumFacing.SOUTH) {
                     for (int l = 0; l < roadBlock.left; l++)
-                        plot(roadBlock.pos.east(), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                        plot(pos.east(l + 1), blockState, world, chunkProvider);
                     for (int r = 0; r < roadBlock.right; r++)
-                        plot(roadBlock.pos.west(), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                        plot(pos.west(), blockState, world, chunkProvider);
                 }
                 if (roadBlock.direction == EnumFacing.NORTH) {
                     for (int l = 0; l < roadBlock.left; l++)
-                        plot(roadBlock.pos.west(), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                        plot(pos.west(l + 1), blockState, world, chunkProvider);
                     for (int r = 0; r < roadBlock.right; r++)
-                        plot(roadBlock.pos.east(), Blocks.stonebrick.getDefaultState(), world, chunkProvider);
+                        plot(pos.east(r + 1), blockState, world, chunkProvider);
                 }
             }
         }
