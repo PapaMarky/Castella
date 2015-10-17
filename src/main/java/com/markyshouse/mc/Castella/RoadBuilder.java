@@ -3,14 +3,20 @@ package com.markyshouse.mc.Castella;
 import com.markyshouse.mc.TerrainMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockStairs;
+import net.minecraft.block.BlockStandingSign;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemSign;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntitySign;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
+import org.lwjgl.Sys;
 
 import java.util.*;
 
@@ -227,7 +233,7 @@ public class RoadBuilder {
         }
         world.setBlockState(p0.up(4), Blocks.lit_pumpkin.getDefaultState());
     }
-    private void renderSegment(BlockPos p0, BlockPos p1, IBlockState blockState, boolean lastSegment,
+    private void renderSegment(BlockPos p0, BlockPos p1, boolean lastSegment,
                                World world, IChunkProvider chunkProvider) {
         double deltax = p1.getX() - p0.getX();
         double deltaz = p1.getZ() - p0.getZ();
@@ -377,36 +383,11 @@ public class RoadBuilder {
             p0 = point_list.get(0);
             for (int i = 1; i < point_list.size(); i++) {
                 BlockPos p1 = point_list.get(i);
-                renderSegment(p0, p1, Blocks.stonebrick.getDefaultState(), (i == (point_list.size() - 1)), world, chunkProvider);
+                renderSegment(p0, p1, (i == (point_list.size() - 1)), world, chunkProvider);
                 p0 = p1;
             }
             // Now the RoadBlock list is populated. Go through it and add bridges, etc.
 
-            boolean onBridge = false;
-            int bridgeStart = -1;
-/*
-            for (int i = 0; i < blockList.size(); i++) {
-                RoadBlock roadBlock = blockList.get(i);
-
-                if (roadBlock.waterLevel > roadBlock.groundLevel ) {
-                    int j = bridgeStart = i;
-                    while (j < blockList.size() && roadBlock.waterLevel > roadBlock.groundLevel) {
-                        roadBlock = blockList.get(j);
-                        j++;
-                    }
-                    int bridgeEnd = j;
-
-                    for (j = bridgeStart; j < bridgeEnd; j++) {
-                        RoadBlock rb = blockList.get(j);
-                        if (rb.pos.getY() == rb.waterLevel) {
-                            int yoff = Math.min(3, Math.min(j - bridgeStart, bridgeEnd - j));
-                            rb.pos = rb.pos = new BlockPos(rb.pos.getX(), rb.waterLevel + yoff, rb.pos.getZ());
-                        }
-                    }
-                    i = bridgeEnd;
-                }
-            }
-*/
             for (int i = 0; i < blockList.size(); i++) {
                 RoadBlock roadBlock = blockList.get(i);
                 IBlockState blockState = Blocks.stonebrick.getDefaultState();
@@ -414,57 +395,108 @@ public class RoadBuilder {
                 if (i + 1 < blockList.size()) {
                     RoadBlock nextBlock = blockList.get(i+1);
                     int nextY = nextBlock.pos.getY();
+                    boolean isStairs = false;
                     if (nextY < pos.getY()) {
                         blockState = Blocks.stone_brick_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.BOTTOM).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, roadBlock.direction.getOpposite());
-                        /*
-                        if (roadBlock.direction == EnumFacing.EAST) {
-                            if (nextBlock.pos.getZ() < pos.getZ()) {
-                                roadBlock.right++;
-                                nextBlock.left++;
-                            } else if (nextBlock.pos.getZ() > pos.getZ()) {
-                                roadBlock.left++;
-                                nextBlock.right++;
-                            }
-                        }
-                        if (roadBlock.direction == EnumFacing.WEST) {
-                            if (nextBlock.pos.getZ() < pos.getZ()) {
-                                roadBlock.left++;
-                                nextBlock.right++;
-                            } else if (nextBlock.pos.getZ() > pos.getZ()) {
-                                roadBlock.right++;
-                                nextBlock.left++;
-                            }
-                        }
-                        */
+                        isStairs = true;
                     } else if (nextY > pos.getY()) {
                         blockState = Blocks.stone_brick_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.BOTTOM).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, roadBlock.direction);
                         pos = pos.up();
+                        isStairs = true;
+                    }
+                    if (isStairs) {
+                        // I'm a stair, make sure the next chunk of road is wide enough for me. (stairs to nowhere are ugly)
+                        int delta = 0;
+                        if (roadBlock.direction == EnumFacing.EAST) delta = nextBlock.pos.getZ() - roadBlock.pos.getZ();
+                        if (roadBlock.direction == EnumFacing.WEST) delta = roadBlock.pos.getZ() - nextBlock.pos.getZ();
+                        if (roadBlock.direction == EnumFacing.NORTH) delta = nextBlock.pos.getX() - roadBlock.pos.getX();
+                        if (roadBlock.direction == EnumFacing.SOUTH) delta = roadBlock.pos.getX() - roadBlock.pos.getX();
+                        nextBlock.left = Math.max(nextBlock.left, roadBlock.left + delta);
+                        nextBlock.right = Math.max(nextBlock.right, roadBlock.right - delta);
+                        if (nextBlock.right < 0 || nextBlock.left < 0)
+                            System.out.print("yow");
+                    }
+                    // now see if 'next' is stairs, and make sure we catch all of him
+                    if (i + 2 < blockList.size()) {
+                        RoadBlock nextNextBlock = blockList.get(i+2);
+                        int nextNextY = nextBlock.pos.getY();
+                        if (nextNextY != nextY) {
+                            int delta = 0;
+                            if (roadBlock.direction == EnumFacing.EAST) delta = nextBlock.pos.getZ() - roadBlock.pos.getZ();
+                            if (roadBlock.direction == EnumFacing.WEST) delta = roadBlock.pos.getZ() - nextBlock.pos.getZ();
+                            if (roadBlock.direction == EnumFacing.NORTH) delta = nextBlock.pos.getX() - roadBlock.pos.getX();
+                            if (roadBlock.direction == EnumFacing.SOUTH) delta = roadBlock.pos.getX() - roadBlock.pos.getX();
+                            roadBlock.left = Math.max(roadBlock.left, nextBlock.left + delta);
+                            roadBlock.right = Math.max(roadBlock.right, nextBlock.right - delta);
+                        }
                     }
                 }
                 plot(pos, blockState, world, chunkProvider);
+                int sign_rot = 0;
                 if (roadBlock.direction == EnumFacing.EAST) {
-                        for (int l = 0; l < roadBlock.left; l++)
-                            plot(pos.north(l + 1), blockState, world, chunkProvider);
-                        for (int r = 0; r < roadBlock.right; r++)
-                            plot(pos.south(r + 1), blockState, world, chunkProvider);
+                    sign_rot = 4;
+                    for (int l = 0; l < roadBlock.left; l++)
+                        plot(pos.north(l + 1), blockState, world, chunkProvider);
+                    for (int r = 0; r < roadBlock.right; r++)
+                        plot(pos.south(r + 1), blockState, world, chunkProvider);
                 }
                 if (roadBlock.direction == EnumFacing.WEST) {
+                    sign_rot = 12;
                     for (int l = 0; l < roadBlock.left; l++)
                         plot(pos.south(l + 1), blockState, world, chunkProvider);
                     for (int r = 0; r < roadBlock.right; r++)
                         plot(pos.north(r + 1), blockState, world, chunkProvider);
                 }
                 if (roadBlock.direction == EnumFacing.SOUTH) {
+                    sign_rot = 8;
                     for (int l = 0; l < roadBlock.left; l++)
                         plot(pos.east(l + 1), blockState, world, chunkProvider);
                     for (int r = 0; r < roadBlock.right; r++)
                         plot(pos.west(), blockState, world, chunkProvider);
                 }
                 if (roadBlock.direction == EnumFacing.NORTH) {
+                    sign_rot = 0;
                     for (int l = 0; l < roadBlock.left; l++)
                         plot(pos.west(l + 1), blockState, world, chunkProvider);
                     for (int r = 0; r < roadBlock.right; r++)
                         plot(pos.east(r + 1), blockState, world, chunkProvider);
+                }
+                if (i == 0) {
+                    IBlockState signBlockState = Blocks.standing_sign.getDefaultState().withProperty(BlockStandingSign.ROTATION, sign_rot);
+                    BlockStandingSign signBlock = (BlockStandingSign)signBlockState.getBlock();
+                    //signBlock.
+
+                    //world.setBlockState(pos.up(), signBlockState);
+                    TileEntity tileentity = signBlock.createNewTileEntity(world, signBlock.getMetaFromState(signBlockState));
+                    //world.getTileEntity(pos);
+                    if (tileentity instanceof TileEntitySign) {
+                        TileEntitySign entity = (TileEntitySign)tileentity;
+                        entity.signText[0] = new ChatComponentText("START");
+                        entity.signText[1] = new ChatComponentText(roadBlock.direction.getName().toUpperCase());
+                        entity.signText[2] = new ChatComponentText("ROAD");
+                        entity.signText[3] = new ChatComponentText(String.format("(%d m)", blockList.size()));
+                        entity.markDirty();
+                        world.setBlockState(pos.up(), signBlock.getActualState(signBlockState, world, pos.up()));
+                        world.setTileEntity(pos.up(), entity);
+                    }
+                } else if (i == blockList.size() - 1) {
+                    IBlockState signBlockState = Blocks.standing_sign.getDefaultState().withProperty(BlockStandingSign.ROTATION, sign_rot);
+                    BlockStandingSign signBlock = (BlockStandingSign)signBlockState.getBlock();
+                    //signBlock.
+
+                    //world.setBlockState(pos.up(), signBlockState);
+                    TileEntity tileentity = signBlock.createNewTileEntity(world, signBlock.getMetaFromState(signBlockState));
+                    //world.getTileEntity(pos);
+                    if (tileentity instanceof TileEntitySign) {
+                        TileEntitySign entity = (TileEntitySign)tileentity;
+                        entity.signText[0] = new ChatComponentText("END");
+                        entity.signText[1] = new ChatComponentText(roadBlock.direction.getName().toUpperCase());
+                        entity.signText[2] = new ChatComponentText("ROAD");
+                        entity.signText[3] = new ChatComponentText(String.format("(%d m)", blockList.size()));
+                        entity.markDirty();
+                        world.setBlockState(pos.up(), signBlock.getActualState(signBlockState, world, pos.up()));
+                        world.setTileEntity(pos.up(), entity);
+                    }
                 }
             }
         }
