@@ -67,6 +67,10 @@ public class TerrainMap {
                 Chunk chunk = chunkProvider.provideChunk(pos);
                 BlockPos groundPos = world.getTopSolidOrLiquidBlock(pos);
                 Block block = chunk.getBlock(groundPos);
+                while (isLiquid(block)) {
+                    groundPos = groundPos.up();
+                    block = chunk.getBlock(groundPos);
+                }
                 while (!isGround(block) && !isLiquid(block)) {
                     groundPos = groundPos.down();
                     block = chunk.getBlock(groundPos);
@@ -77,8 +81,8 @@ public class TerrainMap {
                 Material material = block.getMaterial();
                 if (material == Material.water) {
                     _map[x][z].isUnderWater = true;
-                    _map[x][z].waterLevel = groundPos.getY();
-                    if (groundPos.getY() > water_level) water_level = groundPos.getY();
+                    _map[x][z].waterLevel = groundPos.up().getY();
+                    water_level = Math.max(_map[x][z].waterLevel, water_level);
                     while (material == Material.water) {
                         groundPos = groundPos.down();
                         material = chunk.getBlock(groundPos).getMaterial();
@@ -87,9 +91,9 @@ public class TerrainMap {
                 _map[x][z].isUnderLava = false;
                 _map[x][z].lavalLevel = 0;
                 if (material == Material.lava) {
-                    if (groundPos.getY() > water_level) water_level = groundPos.getY();
                     _map[x][z].isUnderLava = true;
                     _map[x][z].lavalLevel = groundPos.getY();
+                    water_level = Math.max(_map[x][z].lavalLevel, water_level);
                     while (material == Material.lava) {
                         groundPos = groundPos.down();
                         material = chunk.getBlock(groundPos).getMaterial();
@@ -109,7 +113,7 @@ public class TerrainMap {
                 _map[x][z].biome = biome;
             }
         }
-        build_height = Math.max(water_level, min_height + (int)Math.round((double)(max_height - min_height)/2.0));
+        build_height = Math.max(water_level + 3, min_height + (int)Math.round((double)(max_height - min_height)/2.0));
     }
 
     public int heightAt(int x, int z) {
@@ -146,6 +150,10 @@ public class TerrainMap {
         BlockPos groundPos = world.getTopSolidOrLiquidBlock(pos);
         Material material = chunk.getBlock(groundPos).getMaterial();
         Block block = chunk.getBlock(groundPos);
+        while(isGround(block) || isLiquid(block)) {
+            groundPos = groundPos.up();
+            block = chunk.getBlock(groundPos);
+        }
         while(!isGround(block) && !isLiquid(block)) {
             groundPos = groundPos.down();
             block = chunk.getBlock(groundPos);
@@ -161,6 +169,9 @@ public class TerrainMap {
         Chunk chunk = chunkProvider.provideChunk(pos);
         BlockPos groundPos = world.getTopSolidOrLiquidBlock(pos);
         Material material = chunk.getBlock(groundPos).getMaterial();
+        while (isGround(chunk.getBlock(groundPos))) {
+            groundPos = groundPos.up();
+        }
         while(!isGround(chunk.getBlock(groundPos))) {
             groundPos = groundPos.down();
         }
