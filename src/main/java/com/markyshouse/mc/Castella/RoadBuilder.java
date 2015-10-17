@@ -369,7 +369,6 @@ public class RoadBuilder {
 
                     int d0 = Math.abs(y1 - y0);
                     int d1 = Math.abs(y1 - y2);
-                    int dmin = Math.min(Math.abs(y1 - y0), Math.abs(y2 - y1));
 
                     if (((y0 < y1 && y2 < y1) || (y0 > y1 && y2 > y1)) && d0 >= 5 && d1 >= 5) {
                         int x = (point_list.get(i-2).getX() + point_list.get(i).getX()) / 2;

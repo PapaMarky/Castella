@@ -113,7 +113,9 @@ public class TerrainMap {
                 _map[x][z].biome = biome;
             }
         }
-        build_height = Math.max(water_level + 3, min_height + (int)Math.round((double)(max_height - min_height)/2.0));
+        int water = Math.max(_map[_width/2][_height/2].waterLevel,_map[_width/2][_height/2].lavalLevel);
+
+        build_height = Math.max(water + 2, min_height + (int)Math.round((double)(max_height - min_height)/2.0));
     }
 
     public int heightAt(int x, int z) {

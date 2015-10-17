@@ -27,6 +27,10 @@ public class BullDozer {
         Chunk chunk = chunkProvider.provideChunk(pos);
         int h = chunk.getHeight(pos);
         int ground = TerrainMap.getGroundLevel(new BlockPos(x, h, z), world, chunkProvider);
+        int water = TerrainMap.getGroundOrWaterLevel(new BlockPos(x, h, z), world, chunkProvider);
+        if (water > ground && blockChooser == null) {
+            return;
+        }
         BlockPos groundPos = new BlockPos(x, ground, z);
         // clear vegetation
         if (h > ground) {
@@ -113,6 +117,10 @@ public class BullDozer {
                 }
                 world.destroyBlock(pos1, false);
                 world.setBlockState(pos1, block);
+                // if we are over water, don't fill
+                if (water > ground) {
+                    return;
+                }
             }
         } else {
             // check for water
@@ -140,8 +148,6 @@ public class BullDozer {
                 int py = _pos.getY();
 
                 if (fp ==  'g'){
-                    //Square stoneBlock = new BlockOldLog();
-
                     IBlockState stone = Block.getStateById(5);
                     setTerrainHeight(xx, py, zz, random, world, chunkProvider, groundsBlockChooser);
                 } else if (fp == 'W' || fp == 'F' || fp == 'D' || fp == 'c') {
