@@ -390,84 +390,83 @@ public class RoadBuilder {
             for (int i = 0; i < blockList.size(); i++) {
                 RoadBlock roadBlock = blockList.get(i);
                 IBlockState blockState = Blocks.stonebrick.getDefaultState();
-                BlockPos pos = roadBlock.pos;
+                IBlockState blockState1 = Blocks.brick_block.getDefaultState();
                 if (i + 1 < blockList.size()) {
                     RoadBlock nextBlock = blockList.get(i+1);
                     int nextY = nextBlock.pos.getY();
                     boolean isStairs = false;
-                    if (nextY < pos.getY()) {
+                    boolean nextIsStairs = false;
+                    if (nextY < roadBlock.pos.getY()) {
                         blockState = Blocks.stone_brick_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.BOTTOM).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, roadBlock.direction.getOpposite());
+                        blockState1 = Blocks.brick_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.BOTTOM).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, roadBlock.direction.getOpposite());
                         isStairs = true;
-                    } else if (nextY > pos.getY()) {
+                    } else if (nextY > roadBlock.pos.getY()) {
                         blockState = Blocks.stone_brick_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.BOTTOM).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, roadBlock.direction);
-                        pos = pos.up();
+                        blockState1 = Blocks.brick_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.BOTTOM).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, roadBlock.direction);
+                        roadBlock.pos = roadBlock.pos.up();
                         isStairs = true;
                     }
-                    if (isStairs) {
-                        // I'm a stair, make sure the next chunk of road is wide enough for me. (stairs to nowhere are ugly)
-                        int delta = 0;
-                        if (roadBlock.direction == EnumFacing.EAST) delta = nextBlock.pos.getZ() - roadBlock.pos.getZ();
-                        if (roadBlock.direction == EnumFacing.WEST) delta = roadBlock.pos.getZ() - nextBlock.pos.getZ();
-                        if (roadBlock.direction == EnumFacing.NORTH) delta = nextBlock.pos.getX() - roadBlock.pos.getX();
-                        if (roadBlock.direction == EnumFacing.SOUTH) delta = roadBlock.pos.getX() - roadBlock.pos.getX();
-                        nextBlock.left = Math.max(nextBlock.left, roadBlock.left + delta);
-                        nextBlock.right = Math.max(nextBlock.right, roadBlock.right - delta);
-                        if (nextBlock.right < 0 || nextBlock.left < 0)
-                            System.out.print("yow");
+                    if (i + 2 < blockList.size() && blockList.get(i+2).pos.getY() != nextY) {
+                        nextIsStairs = true;
                     }
-                    // now see if 'next' is stairs, and make sure we catch all of him
-                    if (i + 2 < blockList.size()) {
-                        RoadBlock nextNextBlock = blockList.get(i+2);
-                        int nextNextY = nextBlock.pos.getY();
-                        if (nextNextY != nextY) {
-                            int delta = 0;
-                            if (roadBlock.direction == EnumFacing.EAST) delta = nextBlock.pos.getZ() - roadBlock.pos.getZ();
-                            if (roadBlock.direction == EnumFacing.WEST) delta = roadBlock.pos.getZ() - nextBlock.pos.getZ();
-                            if (roadBlock.direction == EnumFacing.NORTH) delta = nextBlock.pos.getX() - roadBlock.pos.getX();
-                            if (roadBlock.direction == EnumFacing.SOUTH) delta = roadBlock.pos.getX() - roadBlock.pos.getX();
-                            roadBlock.left = Math.max(roadBlock.left, nextBlock.left + delta);
-                            roadBlock.right = Math.max(roadBlock.right, nextBlock.right - delta);
+
+                    if (isStairs || nextIsStairs) {
+                        // I'm a stair, make sure the next chunk of road is wide enough for me. (stairs to nowhere are ugly)
+                        int leftOffset = 0;
+                        if (roadBlock.direction == EnumFacing.EAST)
+                            leftOffset = nextBlock.pos.getZ() - roadBlock.pos.getZ();
+                        if (roadBlock.direction == EnumFacing.WEST)
+                            leftOffset = roadBlock.pos.getZ() - nextBlock.pos.getZ();
+                        if (roadBlock.direction == EnumFacing.NORTH)
+                            leftOffset = nextBlock.pos.getX() - roadBlock.pos.getX();
+                        if (roadBlock.direction == EnumFacing.SOUTH)
+                            leftOffset = roadBlock.pos.getX() - nextBlock.pos.getX();
+                        // now see if 'next' is stairs, and make sure we catch all of him
+                        if (nextIsStairs) {
+                            roadBlock.left = Math.max(roadBlock.left, nextBlock.left - leftOffset);
+                            roadBlock.right = Math.max(roadBlock.right, nextBlock.right + leftOffset);
+                        }
+
+                        if (isStairs) {
+                            nextBlock.left = Math.max(nextBlock.left, roadBlock.left + leftOffset);
+                            nextBlock.right = Math.max(nextBlock.right, roadBlock.right - leftOffset);
                         }
                     }
                 }
-                plot(pos, blockState, world, chunkProvider);
+                plot(roadBlock.pos, blockState1, world, chunkProvider);
                 int sign_rot = 0;
                 if (roadBlock.direction == EnumFacing.EAST) {
                     sign_rot = 4;
                     for (int l = 0; l < roadBlock.left; l++)
-                        plot(pos.north(l + 1), blockState, world, chunkProvider);
+                        plot(roadBlock.pos.north(l + 1), blockState, world, chunkProvider);
                     for (int r = 0; r < roadBlock.right; r++)
-                        plot(pos.south(r + 1), blockState, world, chunkProvider);
+                        plot(roadBlock.pos.south(r + 1), blockState, world, chunkProvider);
                 }
                 if (roadBlock.direction == EnumFacing.WEST) {
                     sign_rot = 12;
                     for (int l = 0; l < roadBlock.left; l++)
-                        plot(pos.south(l + 1), blockState, world, chunkProvider);
+                        plot(roadBlock.pos.south(l + 1), blockState, world, chunkProvider);
                     for (int r = 0; r < roadBlock.right; r++)
-                        plot(pos.north(r + 1), blockState, world, chunkProvider);
+                        plot(roadBlock.pos.north(r + 1), blockState, world, chunkProvider);
                 }
                 if (roadBlock.direction == EnumFacing.SOUTH) {
                     sign_rot = 8;
                     for (int l = 0; l < roadBlock.left; l++)
-                        plot(pos.east(l + 1), blockState, world, chunkProvider);
+                        plot(roadBlock.pos.east(l + 1), blockState, world, chunkProvider);
                     for (int r = 0; r < roadBlock.right; r++)
-                        plot(pos.west(), blockState, world, chunkProvider);
+                        plot(roadBlock.pos.west(r + 1), blockState, world, chunkProvider);
                 }
                 if (roadBlock.direction == EnumFacing.NORTH) {
                     sign_rot = 0;
                     for (int l = 0; l < roadBlock.left; l++)
-                        plot(pos.west(l + 1), blockState, world, chunkProvider);
+                        plot(roadBlock.pos.west(l + 1), blockState, world, chunkProvider);
                     for (int r = 0; r < roadBlock.right; r++)
-                        plot(pos.east(r + 1), blockState, world, chunkProvider);
+                        plot(roadBlock.pos.east(r + 1), blockState, world, chunkProvider);
                 }
                 if (i == 0) {
                     IBlockState signBlockState = Blocks.standing_sign.getDefaultState().withProperty(BlockStandingSign.ROTATION, sign_rot);
                     BlockStandingSign signBlock = (BlockStandingSign)signBlockState.getBlock();
-                    //signBlock.
-
-                    //world.setBlockState(pos.up(), signBlockState);
                     TileEntity tileentity = signBlock.createNewTileEntity(world, signBlock.getMetaFromState(signBlockState));
-                    //world.getTileEntity(pos);
                     if (tileentity instanceof TileEntitySign) {
                         TileEntitySign entity = (TileEntitySign)tileentity;
                         entity.signText[0] = new ChatComponentText("START");
@@ -475,17 +474,13 @@ public class RoadBuilder {
                         entity.signText[2] = new ChatComponentText("ROAD");
                         entity.signText[3] = new ChatComponentText(String.format("(%d m)", blockList.size()));
                         entity.markDirty();
-                        world.setBlockState(pos.up(), signBlock.getActualState(signBlockState, world, pos.up()));
-                        world.setTileEntity(pos.up(), entity);
+                        world.setBlockState(roadBlock.pos.up(), signBlock.getActualState(signBlockState, world, roadBlock.pos.up()));
+                        world.setTileEntity(roadBlock.pos.up(), entity);
                     }
                 } else if (i == blockList.size() - 1) {
                     IBlockState signBlockState = Blocks.standing_sign.getDefaultState().withProperty(BlockStandingSign.ROTATION, sign_rot);
                     BlockStandingSign signBlock = (BlockStandingSign)signBlockState.getBlock();
-                    //signBlock.
-
-                    //world.setBlockState(pos.up(), signBlockState);
                     TileEntity tileentity = signBlock.createNewTileEntity(world, signBlock.getMetaFromState(signBlockState));
-                    //world.getTileEntity(pos);
                     if (tileentity instanceof TileEntitySign) {
                         TileEntitySign entity = (TileEntitySign)tileentity;
                         entity.signText[0] = new ChatComponentText("END");
@@ -493,8 +488,8 @@ public class RoadBuilder {
                         entity.signText[2] = new ChatComponentText("ROAD");
                         entity.signText[3] = new ChatComponentText(String.format("(%d m)", blockList.size()));
                         entity.markDirty();
-                        world.setBlockState(pos.up(), signBlock.getActualState(signBlockState, world, pos.up()));
-                        world.setTileEntity(pos.up(), entity);
+                        world.setBlockState(roadBlock.pos.up(), signBlock.getActualState(signBlockState, world, roadBlock.pos.up()));
+                        world.setTileEntity(roadBlock.pos.up(), entity);
                     }
                 }
             }
