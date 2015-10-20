@@ -1,9 +1,7 @@
 package com.markyshouse.mc.Castella;
 
 import com.markyshouse.mc.TerrainMap;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockStairs;
-import net.minecraft.block.BlockStandingSign;
+import net.minecraft.block.*;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemSign;
@@ -44,6 +42,21 @@ public class RoadBuilder {
     protected Structure structure1;
     private double MAX_SEGMENT_LENGTH = 25;
 
+    // mainly intended to identify blocks that are already parts of roads
+    // not 100% accurate
+    public static boolean isNatural(BlockPos blockPos, World world) {
+        Block block = world.getBlockState(blockPos).getBlock();
+        if (block instanceof BlockPlanks || block instanceof BlockGlass ||
+                block instanceof BlockCompressed || block instanceof BlockSlab ||
+                block instanceof BlockStairs || block instanceof BlockDispenser ||
+                block instanceof BlockRailBase || block instanceof BlockContainer ||
+                block instanceof BlockPressurePlate || block instanceof BlockDoor ||
+                block instanceof BlockLadder || block instanceof BlockStoneBrick ||
+                block == Blocks.brick_block)
+            return false;
+
+        return true;
+    }
     public BlockPos getCenter(BlockPos p0, BlockPos p1) {
         int x = p0.getX() + (p1.getX() - p0.getX())/2;
         int y = p0.getY() + (p1.getY() - p0.getY())/2;
@@ -55,6 +68,9 @@ public class RoadBuilder {
     }
 
     private void plot(BlockPos blockPos, IBlockState blockState, World world, IChunkProvider chunkProvider) {
+        if (!isNatural(blockPos, world)) {
+            return;
+        }
         Chunk chunk = chunkProvider.provideChunk(blockPos);
         int h = chunk.getHeight(blockPos);
         int n = 0;
@@ -248,13 +264,13 @@ public class RoadBuilder {
         double dz = p1.getZ() - p0.getZ();
         double dy = Math.abs(p1.getY() - p0.getY());
 
-        double segment_length = Math.sqrt(dx*dx + dz*dz);
+        EnumFacing direction = EnumFacing.getFacingFromVector((float)dx, 0, (float)dz);
+        double segment_length = Math.abs((direction == EnumFacing.EAST || direction == EnumFacing.WEST) ? dx : dz);
 
-        if (dy > segment_length) {
-            System.out.println("TOO MUCH RISE IN ROAD");
+        if (dy >= segment_length) {
+            System.out.println(String.format("  -- Rejecting Road: TOO STEEP: dy: %5.1f, length: %5.1f", dy, segment_length));
         }
 
-        EnumFacing direction = EnumFacing.getFacingFromVector((float)dx, 0, (float)dz);
 
         if (deltax == 0) { // verticle line
             for (int z = z0; compare(z, z1, zInc); z += zInc) {
@@ -300,10 +316,15 @@ public class RoadBuilder {
         double dz = pt1.getPosition().getZ() - p0.getZ();
         double dy = Math.abs(pt1.getPosition().getY() - p0.getY());
 
-        double distance = Math.sqrt(dx*dx + dz*dz);
+        EnumFacing direction = EnumFacing.getFacingFromVector((float)dx, 0, (float)dz);
+        double distance = Math.abs((direction == EnumFacing.EAST || direction == EnumFacing.WEST) ? dx : dz);
+        //double distance = Math.sqrt(dx*dx + dz*dz);
 
         // If the change in height is greater than the distance, we cannot build a road to it
-        if (dy > distance) return false;
+        if (dy >= distance) {
+            System.out.println(String.format("  -- Rejecting Road: TOO STEEP: dy: %5.1f, length: %5.1f", dy, distance));
+            return false;
+        }
 
         final int MAX_FAILS = 5;
         int failed_tries = 0;
@@ -313,9 +334,11 @@ public class RoadBuilder {
             dz = p1.getZ() - p0.getZ();
             dy = Math.abs(p1.getY() - p0.getY());
 
-            distance = Math.sqrt(dx*dx + dz*dz);
+            //distance = Math.sqrt(dx*dx + dz*dz);
+            distance = Math.abs((direction == EnumFacing.EAST || direction == EnumFacing.WEST) ? dx : dz);
             if (dy > Math.floor( 4.0 * distance / 5.0)) {
                 failed_tries++;
+                System.out.println(String.format("  -- Rejecting segment: TOO STEEP: dy: %5.1f, length: %5.1f, %d tries", dy, distance, failed_tries));
                 if (stack.isEmpty()) return false;
                 continue;
             }
@@ -332,8 +355,10 @@ public class RoadBuilder {
                     center = center.down();
 
                 dy = Math.abs(p1.getY() - center.getY());
+                distance = Math.abs((direction == EnumFacing.EAST || direction == EnumFacing.WEST) ? center.getX() - p0.getX() : center.getZ() - p0.getZ());
                 if (dy > Math.floor( 4.0 * distance / 5.0)) {
                     failed_tries++;
+                    System.out.println(String.format("  -- Rejecting center: TOO STEEP: dy: %5.1f, length: %5.1f, %d tries", dy, distance, failed_tries));
                     if (stack.isEmpty()) return false;
                     continue;
                 }
