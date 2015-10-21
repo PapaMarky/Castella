@@ -264,12 +264,8 @@ public class RoadBuilder {
         double dz = p1.getZ() - p0.getZ();
         double dy = Math.abs(p1.getY() - p0.getY());
 
-        EnumFacing direction = EnumFacing.getFacingFromVector((float)dx, 0, (float)dz);
-        double segment_length = Math.abs((direction == EnumFacing.EAST || direction == EnumFacing.WEST) ? dx : dz);
-
-        if (dy >= segment_length) {
-            System.out.println(String.format("  -- Rejecting Road: TOO STEEP: dy: %5.1f, length: %5.1f", dy, segment_length));
-        }
+        EnumFacing direction = EnumFacing.getFacingFromVector((float) dx, 0, (float) dz);
+        double segment_length = Math.sqrt(dx * dx + dz * dz);
 
 
         if (deltax == 0) { // verticle line
