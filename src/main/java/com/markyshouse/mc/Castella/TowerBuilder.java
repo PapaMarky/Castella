@@ -9,6 +9,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemDoor;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.border.IBorderListener;
@@ -313,6 +314,112 @@ public class TowerBuilder extends StructureBuilder {
         ladder_facing = ladder_facing.rotateY();
     }
 
+    public void addCollar(BlockPos position, Random random, int floor, World world, IBlockState cbs, IBlockState slabbs, IBlockState blockbs) {
+        int yoff = floor * 3;
+        int off = 6; // should use footprint
+        int x = position.getX();
+
+        IBlockState blockStateS = cbs.withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, EnumFacing.NORTH);
+        IBlockState blockStateN = cbs.withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, EnumFacing.SOUTH);
+        IBlockState blockStateE = cbs.withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, EnumFacing.WEST);
+        IBlockState blockStateW = cbs.withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT).withProperty(BlockStairs.FACING, EnumFacing.EAST);
+        IBlockState blockStateCorner = cbs;
+        for (int xoff = -1; xoff <= 1; xoff++) {
+            // add south
+            BlockPos pos = position.south(off).east(xoff).up(yoff);
+            world.setBlockState(pos, blockStateS);
+            // add north
+            pos = position.north(off).east(xoff).up(yoff);
+            world.setBlockState(pos, blockStateN);
+            // add east
+            pos = position.north(xoff).east(off).up(yoff);
+            world.setBlockState(pos, blockStateE);
+            // add west
+            pos = position.north(xoff).west(off).up(yoff);
+            world.setBlockState(pos, blockStateW);
+        }
+        world.setBlockState(position.south(off - 1).east(-2).up(yoff), blockbs);
+        world.setBlockState(position.south(off - 1).east(2).up(yoff), blockbs);
+        world.setBlockState(position.south(off).east(-2).up(yoff),
+                cbs.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState(position.south(off).east(2).up(yoff),
+                cbs.withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_LEFT).withProperty(BlockStairs.FACING, EnumFacing.WEST));
+        world.setBlockState(position.south(off - 1).east(-3).up(yoff), blockStateS);
+        world.setBlockState(position.south(off - 1).east(3).up(yoff), blockStateS);
+
+        world.setBlockState(position.north(off - 1).east(-2).up(yoff), blockbs);
+        world.setBlockState(position.north(off - 1).east(2).up(yoff), blockbs);
+        world.setBlockState(position.north(off).east(-2).up(yoff),
+                cbs.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_LEFT));
+        world.setBlockState(position.north(off).east(2).up(yoff),
+                cbs.withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT).withProperty(BlockStairs.FACING, EnumFacing.WEST));
+        world.setBlockState(position.north(off - 1).east(-3).up(yoff), blockStateN);
+        world.setBlockState(position.north(off - 1).east(3).up(yoff), blockStateN);
+
+        world.setBlockState(position.east(off - 1).north(-2).up(yoff), blockbs);
+        world.setBlockState(position.east(off - 1).north(2).up(yoff), blockbs);
+        world.setBlockState(position.east(off).north(-2).up(yoff),
+                cbs.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState(position.east(off).north(2).up(yoff),
+                cbs.withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_LEFT).withProperty(BlockStairs.FACING, EnumFacing.SOUTH));
+        world.setBlockState(position.east(off - 1).north(-3).up(yoff), blockStateE);
+        world.setBlockState(position.east(off - 1).north(3).up(yoff), blockStateE);
+
+        world.setBlockState(position.west(off - 1).north(-2).up(yoff), blockbs);
+        world.setBlockState(position.west(off - 1).north(2).up(yoff), blockbs);
+        world.setBlockState(position.west(off).north(-2).up(yoff),
+                cbs.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState(position.west(off).north(2).up(yoff),
+                cbs.withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_LEFT).withProperty(BlockStairs.FACING, EnumFacing.SOUTH));
+        world.setBlockState(position.west(off - 1).north(-3).up(yoff), blockStateW);
+        world.setBlockState(position.west(off - 1).north(3).up(yoff), blockStateW);
+
+        IBlockState bs = slabbs;
+        world.setBlockState(position.south(off - 2).east(4).up(yoff), bs);
+        world.setBlockState(position.south(off - 2).east(-4).up(yoff), bs);
+        world.setBlockState(position.north(off - 2).east(4).up(yoff), bs);
+        world.setBlockState(position.north(off - 2).east(-4).up(yoff), bs);
+    }
+
+    Vec3i[] turret_pattern = {
+            new Vec3i(0, 0, -6),
+            new Vec3i(1, 0, -6),
+            new Vec3i(2, 0, -6),
+            new Vec3i(3, 0, -5),
+            new Vec3i(4, 0, -4),
+            new Vec3i(5, 0, -3),
+            new Vec3i(6, 0, -2),
+            new Vec3i(6, 0, -1),
+    };
+    public void addTurret(BlockPos position, Random random, int floor, World world, int h0, int h1, IBlockState tbs) {
+        boolean opening = true;
+        BlockPos pos = position.up(floor * 3 + 1);
+        for (int i = 0; i < turret_pattern.length; i++) {
+            Vec3i v = turret_pattern[i];
+            if(opening) {
+                for (int h = 0; h < h0; h++) {
+                    world.setBlockState(pos.north(v.getX()).east(v.getZ()).up(h), tbs);
+                    world.setBlockState(pos.east(v.getX()).south(v.getZ()).up(h), tbs);
+                    world.setBlockState(pos.south(v.getX()).west(v.getZ()).up(h), tbs);
+                    world.setBlockState(pos.west(v.getX()).north(v.getZ()).up(h), tbs);
+                }
+            } else {
+                for (int h = 0; h < h1; h++) {
+                    world.setBlockState(pos.north(v.getX()).east(v.getZ()).up(h), tbs);
+                    world.setBlockState(pos.east(v.getX()).south(v.getZ()).up(h), tbs);
+                    world.setBlockState(pos.south(v.getX()).west(v.getZ()).up(h), tbs);
+                    world.setBlockState(pos.west(v.getX()).north(v.getZ()).up(h), tbs);
+                }
+            }
+
+            opening = ! opening;
+        }
+    }
+
+    public void addRoof(BlockPos position, Random random, int floor, World world, IBlockState roofBlockBaseState) {
+        int yoff = floor * 3;
+
+    }
     public void init(Random random) {
 
         // TODO needs to move to StructureTower
@@ -356,10 +463,33 @@ public class TowerBuilder extends StructureBuilder {
         // bulldoze
         BullDozer.bullDoze(position, footprint, blockChooser, blockChooser, random, world, chunkProvider);
 
-        // build 1st floor
+        // build floors
         for (int f = 0; f < n_floors; f++) {
             addFloor(position, random, f, blockChooser, world, chunkProvider);
         }
+
+        IBlockState collar_base_state = Blocks.stone_brick_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.TOP);
+        IBlockState collar_slab_bs = Blocks.stone_slab.getDefaultState().withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP).withProperty(BlockStoneSlab.VARIANT, BlockStoneSlab.EnumType.SMOOTHBRICK);
+        IBlockState collar_block_bs = Blocks.stonebrick.getDefaultState();
+        if (random.nextDouble() > 0.5) {
+            collar_base_state = Blocks.sandstone_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.TOP);
+            collar_slab_bs = Blocks.stone_slab.getDefaultState().withProperty(BlockStoneSlab.VARIANT, BlockStoneSlab.EnumType.SAND).withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP);
+            collar_block_bs = Blocks.sandstone.getDefaultState();
+        }
+        addCollar(structure.position, random, n_floors, world, collar_base_state, collar_slab_bs, collar_block_bs);
+
+        IBlockState tbs = Blocks.stonebrick.getDefaultState();
+        double rnd = random.nextDouble();
+        if (rnd < 0.5) {
+            tbs = Blocks.stonebrick.getDefaultState();
+        } else if (rnd < 0.75) {
+            tbs = Blocks.stone.getDefaultState();
+        } else {
+            tbs = Blocks.stone.getDefaultState().withProperty(BlockStone.VARIANT, BlockStone.EnumType.ANDESITE_SMOOTH);
+        }
+        addTurret(structure.position, random, n_floors, world, 0, 2, tbs);
+        addRoof(structure.position, random, n_floors, world, Blocks.oak_stairs.getDefaultState());
+
         structure.setRoadPoint(EnumFacing.NORTH, structure.position.north(8));
         structure.setRoadPoint(EnumFacing.EAST, structure.position.east(8));
         structure.setRoadPoint(EnumFacing.SOUTH, structure.position.south(8));
@@ -388,12 +518,12 @@ public class TowerBuilder extends StructureBuilder {
         }
 
         // mark the tower with a pillar
-        // IBlockState bs = Blocks.stonebrick.getDefaultState();
+        // IBlockState collar_slab_bs = Blocks.stonebrick.getDefaultState();
         /*
         int base = (n_floors + 1) * 3 + 3;
         BlockPos columnPos = new BlockPos(position.getX() + footprint[0].length/2, position.getY() + 10, position.getZ() + footprint.length/2);
         for (int i = 0; i < 50; i++) {
-            world.setBlockState(columnPos.up(i + n_floors * 3 + 3), bs);
+            world.setBlockState(columnPos.up(i + n_floors * 3 + 3), collar_slab_bs);
         }
         */
         // ...
