@@ -391,6 +391,7 @@ public class TowerBuilder extends StructureBuilder {
             new Vec3i(6, 0, -2),
             new Vec3i(6, 0, -1),
     };
+
     public void addTurret(BlockPos position, Random random, int floor, World world, int h0, int h1, IBlockState tbs) {
         boolean opening = true;
         BlockPos pos = position.up(floor * 3 + 1);
@@ -416,9 +417,126 @@ public class TowerBuilder extends StructureBuilder {
         }
     }
 
-    public void addRoof(BlockPos position, Random random, int floor, World world, IBlockState roofBlockBaseState) {
-        int yoff = floor * 3;
+    public void addRoof(BlockPos position, Random random, int floor, World world, IBlockState roofBlockBaseState, IBlockState roofSlabBaseState) {
+        int yoff = (floor + 1) * 3 + 1;
+        BlockPos pos = position.up(yoff);
 
+        int i = 0;
+        Vec3i v = null;
+        while (i < 2) {
+            v = turret_pattern[i];
+            world.setBlockState((pos.north(v.getX()).east(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST));
+            world.setBlockState((pos.east(v.getX()).south(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH));
+            world.setBlockState((pos.south(v.getX()).west(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST));
+            world.setBlockState((pos.west(v.getX()).north(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH));
+            i++;
+        }
+        while (i < 6) {
+            world.setBlockState((pos.north(turret_pattern[i].getX()).east(turret_pattern[i].getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.north(turret_pattern[i].getX()).east(turret_pattern[i].getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+
+            world.setBlockState((pos.east(turret_pattern[i].getX()).south(turret_pattern[i].getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.east(turret_pattern[i].getX()).south(turret_pattern[i].getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+
+            world.setBlockState((pos.south(turret_pattern[i].getX()).west(turret_pattern[i].getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.south(turret_pattern[i].getX()).west(turret_pattern[i].getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+
+            world.setBlockState((pos.west(turret_pattern[i].getX()).north(turret_pattern[i].getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.west(turret_pattern[i].getX()).north(turret_pattern[i].getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+
+            i++;
+        }
+        while (i < 8) {
+            world.setBlockState((pos.north(turret_pattern[i].getX()).east(turret_pattern[i].getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT));
+            world.setBlockState((pos.east(turret_pattern[i].getX()).south(turret_pattern[i].getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT));
+            world.setBlockState((pos.south(turret_pattern[i].getX()).west(turret_pattern[i].getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT));
+            world.setBlockState((pos.west(turret_pattern[i].getX()).north(turret_pattern[i].getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.STRAIGHT));
+            i++;
+        }
+
+        // second circle
+        pos = pos.up();
+        v = new Vec3i(0, 0, -5);
+        world.setBlockState((pos.north(v.getX())).east(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST));
+        world.setBlockState((pos.east(v.getX())).south(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH));
+        world.setBlockState((pos.south(v.getX())).west(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST));
+        world.setBlockState((pos.west(v.getX())).north(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH));
+
+        world.setBlockState((pos.north(v.getX())).east(v.getZ() + 1), roofSlabBaseState.withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP));
+        world.setBlockState((pos.east(v.getX())).south(v.getZ() + 1), roofSlabBaseState.withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP));
+        world.setBlockState((pos.south(v.getX())).west(v.getZ() + 1), roofSlabBaseState.withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP));
+        world.setBlockState((pos.west(v.getX())).north(v.getZ() + 1), roofSlabBaseState.withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP));
+
+        for (int j = 0; j < 4; j++) {
+            v = new Vec3i(1 + j, 0, -5 + j);
+            world.setBlockState((pos.north(v.getX()).east(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.north(v.getX()).east(v.getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+
+            world.setBlockState((pos.east(v.getX()).south(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.east(v.getX()).south(v.getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+
+            world.setBlockState((pos.south(v.getX()).west(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.south(v.getX()).west(v.getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+
+            world.setBlockState((pos.west(v.getX()).north(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.west(v.getX()).north(v.getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+        }
+        v = new Vec3i(5, 0, -1);
+        world.setBlockState((pos.north(v.getX()).east(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState((pos.east(v.getX()).south(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState((pos.south(v.getX()).west(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState((pos.west(v.getX()).north(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+
+        // third circle
+        pos = pos.up();
+        v = new Vec3i(0, 0, -3);
+        world.setBlockState((pos.north(v.getX())).east(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST));
+        world.setBlockState((pos.east(v.getX())).south(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH));
+        world.setBlockState((pos.south(v.getX())).west(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST));
+        world.setBlockState((pos.west(v.getX())).north(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH));
+
+        world.setBlockState((pos.north(v.getX())).east(v.getZ() + 1), roofSlabBaseState.withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP));
+        world.setBlockState((pos.east(v.getX())).south(v.getZ() + 1), roofSlabBaseState.withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP));
+        world.setBlockState((pos.south(v.getX())).west(v.getZ() + 1), roofSlabBaseState.withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP));
+        world.setBlockState((pos.west(v.getX())).north(v.getZ() + 1), roofSlabBaseState.withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP));
+
+        for (int j = 0; j < 2; j++) {
+            v = new Vec3i(1 + j, 0, -3 + j);
+            world.setBlockState((pos.north(v.getX()).east(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.north(v.getX()).east(v.getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+
+            world.setBlockState((pos.east(v.getX()).south(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.east(v.getX()).south(v.getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+
+            world.setBlockState((pos.south(v.getX()).west(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.south(v.getX()).west(v.getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+
+            world.setBlockState((pos.west(v.getX()).north(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+            world.setBlockState((pos.west(v.getX()).north(v.getZ() + 1)), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.INNER_RIGHT));
+        }
+        v = new Vec3i(3, 0, -1);
+        world.setBlockState((pos.north(v.getX()).east(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState((pos.east(v.getX()).south(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState((pos.south(v.getX()).west(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState((pos.west(v.getX()).north(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+
+        // fourth circle
+        pos = pos.up();
+        v = new Vec3i(0, 0, -1);
+        world.setBlockState((pos.north(v.getX())).east(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST));
+        world.setBlockState((pos.east(v.getX())).south(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH));
+        world.setBlockState((pos.south(v.getX())).west(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST));
+        world.setBlockState((pos.west(v.getX())).north(v.getZ()), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH));
+
+        v = new Vec3i(1, 0, -1);
+        world.setBlockState((pos.north(v.getX()).east(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.SOUTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState((pos.east(v.getX()).south(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.WEST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState((pos.south(v.getX()).west(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.NORTH).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+        world.setBlockState((pos.west(v.getX()).north(v.getZ())), roofBlockBaseState.withProperty(BlockStairs.FACING, EnumFacing.EAST).withProperty(BlockStairs.SHAPE, BlockStairs.EnumShape.OUTER_RIGHT));
+
+        // Top
+        pos = pos.up();
+        world.setBlockState(pos, roofSlabBaseState.withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.BOTTOM));
     }
     public void init(Random random) {
 
@@ -471,11 +589,12 @@ public class TowerBuilder extends StructureBuilder {
         IBlockState collar_base_state = Blocks.stone_brick_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.TOP);
         IBlockState collar_slab_bs = Blocks.stone_slab.getDefaultState().withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP).withProperty(BlockStoneSlab.VARIANT, BlockStoneSlab.EnumType.SMOOTHBRICK);
         IBlockState collar_block_bs = Blocks.stonebrick.getDefaultState();
+        /*
         if (random.nextDouble() > 0.5) {
             collar_base_state = Blocks.sandstone_stairs.getDefaultState().withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.TOP);
             collar_slab_bs = Blocks.stone_slab.getDefaultState().withProperty(BlockStoneSlab.VARIANT, BlockStoneSlab.EnumType.SAND).withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP);
             collar_block_bs = Blocks.sandstone.getDefaultState();
-        }
+        } */
         addCollar(structure.position, random, n_floors, world, collar_base_state, collar_slab_bs, collar_block_bs);
 
         IBlockState tbs = Blocks.stonebrick.getDefaultState();
@@ -487,8 +606,8 @@ public class TowerBuilder extends StructureBuilder {
         } else {
             tbs = Blocks.stone.getDefaultState().withProperty(BlockStone.VARIANT, BlockStone.EnumType.ANDESITE_SMOOTH);
         }
-        addTurret(structure.position, random, n_floors, world, 0, 2, tbs);
-        addRoof(structure.position, random, n_floors, world, Blocks.oak_stairs.getDefaultState());
+        addTurret(structure.position, random, n_floors, world, 0, 3, tbs);
+        addRoof(structure.position, random, n_floors, world, Blocks.oak_stairs.getDefaultState(), Blocks.wooden_slab.getDefaultState().withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.TOP).withProperty(BlockWoodSlab.VARIANT, BlockPlanks.EnumType.OAK));
 
         structure.setRoadPoint(EnumFacing.NORTH, structure.position.north(8));
         structure.setRoadPoint(EnumFacing.EAST, structure.position.east(8));
