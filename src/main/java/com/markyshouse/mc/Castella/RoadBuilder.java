@@ -185,6 +185,10 @@ public class RoadBuilder {
         int n = 0;
         final int TUNNEL_HEIGHT = 3;
         BlockPos pos = blockPos.up();
+        while (TerrainMap.isGround(chunk.getBlock(pos))) {
+            pos = pos.up();
+        }
+
         int hh = pos.getY();
         while (hh < h && n < TUNNEL_HEIGHT) {
             if (TerrainMap.isGround(chunk.getBlock(pos))) {
@@ -195,13 +199,19 @@ public class RoadBuilder {
         }
         if (hh < h) {
             // we're building a tunnel
-            world.destroyBlock(pos, false);
+            if (!BullDozer.destroyTree(pos, world, chunkProvider)) {
+                world.destroyBlock(pos, false);
+            }
             world.setBlockState(pos, Blocks.brick_block.getDefaultState());
             hh--;
         }
         while (hh > blockPos.getY()) {
             pos = new BlockPos(blockPos.getX(), hh, blockPos.getZ());
-            world.destroyBlock(pos, false);
+            Chunk chunk1 = chunkProvider.provideChunk(pos);
+            Block block = chunk1.getBlock(pos);
+            if (!(block instanceof BlockLeavesBase) && !BullDozer.destroyTree(pos, world, chunkProvider)) {
+                world.destroyBlock(pos, false);
+            }
             hh--;
         }
         Block block2 = chunkProvider.provideChunk(blockPos.up()).getBlock(blockPos.up());

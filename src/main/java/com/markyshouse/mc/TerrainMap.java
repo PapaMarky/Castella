@@ -1,6 +1,7 @@
 package com.markyshouse.mc;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.BlockNewLog;
 import net.minecraft.block.BlockPlanks;
 import net.minecraft.block.material.Material;
@@ -123,8 +124,7 @@ public class TerrainMap {
         return _map[x][z].groundLevel;
     }
     static public boolean isLiquid(Block block) {
-        Material m = block.getMaterial();
-        return (m == Material.water || m == Material.lava);
+        return block instanceof BlockLiquid;
     }
     static public boolean isGround(Block block) {
         Material m = block.getMaterial();

@@ -3,6 +3,7 @@ package com.markyshouse.mc.Castella;
 /**
  * Created by mark on 9/18/2015.
  */
+import com.google.common.collect.ImmutableMap;
 import com.markyshouse.mc.IBlockChooser;
 import com.markyshouse.mc.TerrainMap;
 import net.minecraft.block.*;
@@ -20,6 +21,66 @@ import java.util.Random;
 public class BullDozer {
     enum ACTION {IGNORE, DESTROY, REPLACE}
 
+    static public void destroyLeaves(BlockPlanks.EnumType type, BlockPos origin, BlockPos pos, World world, IChunkProvider chunkProvider) {
+        int dist = Math.abs(pos.getX() - origin.getX()) + Math.abs(pos.getZ() - origin.getZ()) + Math.abs(pos.getY() - origin.getY());
+        if (dist > 4) return;
+        Chunk chunk = chunkProvider.provideChunk(pos);
+        Block block = chunk.getBlock(pos);
+        if (! (block instanceof BlockLeavesBase) && ! (block instanceof BlockLog)) return;
+        BlockPlanks.EnumType type1 = (BlockPlanks.EnumType)block.getActualState(block.getDefaultState(), world, pos).getProperties().get(BlockPlanks.VARIANT);
+        if (type != type1) return;
+        if (block instanceof BlockLeavesBase) {
+            world.destroyBlock(pos, false);
+            //world.setBlockState(pos, Blocks.glass.getDefaultState());
+            destroyLeaves(type, origin, pos.north(), world, chunkProvider);
+            destroyLeaves(type, origin, pos.east(), world, chunkProvider);
+            destroyLeaves(type, origin, pos.south(), world, chunkProvider);
+            destroyLeaves(type, origin, pos.west(), world, chunkProvider);
+            //destroyLeaves(type, origin, pos.up(), world, chunkProvider);
+            //destroyLeaves(type, origin, pos.down(), world, chunkProvider);
+        } else if (block instanceof BlockLog) {
+            if (dist == 1) {
+                //destroyTree(pos, world, chunkProvider);
+            }
+        }
+    }
+    static public boolean destroyTree(BlockPos blockPos, World world, IChunkProvider chunkProvider) {
+        Chunk chunk = chunkProvider.provideChunk(blockPos);
+        Block block = chunk.getBlock(blockPos);
+
+        // TODO Fails for crowns of trees, go down to lowest log?
+        if (block instanceof BlockLeavesBase) {
+            return false;
+        }
+        if (block instanceof BlockLog) {
+            IBlockState bs = block.getActualState(block.getDefaultState(), world, blockPos);
+            BlockPlanks.EnumType type = null;
+            ImmutableMap properties = bs.getProperties();
+            type = (BlockPlanks.EnumType) properties.get(BlockPlanks.VARIANT);
+            if (type == null) return false;
+            world.destroyBlock(blockPos, false);
+            if( ! destroyTree(blockPos.north(), world, chunkProvider)) {
+                destroyLeaves(type, blockPos, blockPos.north(), world, chunkProvider);
+            }
+            if( ! destroyTree(blockPos.east(), world, chunkProvider)) {
+                destroyLeaves(type, blockPos, blockPos.east(), world, chunkProvider);
+            }
+            if( ! destroyTree(blockPos.south(), world, chunkProvider)) {
+                destroyLeaves(type, blockPos, blockPos.south(), world, chunkProvider);
+            }
+            if( ! destroyTree(blockPos.west(), world, chunkProvider)) {
+                destroyLeaves(type, blockPos, blockPos.west(), world, chunkProvider);
+            }
+
+            //if (! destroyTree(blockPos.up(), world, chunkProvider)) {
+                destroyLeaves(type, blockPos.up(), blockPos.up(), world, chunkProvider);
+            //}
+            destroyTree(blockPos.down(), world, chunkProvider);
+            return true;
+        }
+        return false;
+    }
+
     static public void setTerrainHeight(int x, int target_h, int z,
                                         Random random, World world, IChunkProvider chunkProvider,
                                         IBlockChooser blockChooser) {
@@ -32,12 +93,15 @@ public class BullDozer {
             return;
         }
         BlockPos groundPos = new BlockPos(x, ground, z);
+        destroyTree(groundPos.up(), world, chunkProvider);
         // clear vegetation
         if (h > ground) {
             for(int y = h; y > ground; y--) {
                 Block block = chunk.getBlock(new BlockPos(x, y, z));
                 if (block instanceof IGrowable) {
-                    world.destroyBlock(new BlockPos(x, y, z), false);
+                    //if (! destroyTree(new BlockPos(x, y, z), world, chunkProvider)) {
+                        world.destroyBlock(new BlockPos(x, y, z), false);
+                    //}
                 }
             }
         }
@@ -65,7 +129,9 @@ public class BullDozer {
                         world.destroyBlock(bp, false);
                     }
                 } else if (!(block instanceof BlockLiquid)) {
-                    world.destroyBlock(bp, false);
+                    //if (!destroyTree(bp, world, chunkProvider)) {
+                        world.destroyBlock(bp, false);
+                    //}
                 }
                 /**
                 IBlockState glass = Blocks.glass.getDefaultState();
@@ -79,12 +145,16 @@ public class BullDozer {
             IBlockState block = null;
             if (blockChooser != null) {
                 block = blockChooser.chooseBlock(target_pos, world, chunkProvider);
-                world.destroyBlock(target_pos, false);
+                //if (! destroyTree(target_pos, world, chunkProvider)) {
+                    world.destroyBlock(target_pos, false);
+                //}
                 world.setBlockState(target_pos, block);
             } else {
                 // replace with what was on top
                 if (groundTop != null) {
-                    world.destroyBlock(target_pos, false);
+                    //if (!destroyTree(target_pos, world, chunkProvider)) {
+                        world.destroyBlock(target_pos, false);
+                    //}
                     world.setBlockState(target_pos, groundTop);
                 }
             }
@@ -126,7 +196,9 @@ public class BullDozer {
             // check for water
             if (blockChooser != null) {
                 BlockPos blockPos = new BlockPos(x, target_h, z);
-                world.destroyBlock(blockPos, false);
+                if (! destroyTree(blockPos, world, chunkProvider)) {
+                    world.destroyBlock(blockPos, false);
+                }
                 world.setBlockState(blockPos, blockChooser.chooseBlock(blockPos, world, chunkProvider));
             }
         }
