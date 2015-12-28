@@ -27,7 +27,7 @@ public class CastellaTerrainEventHandler {
     }
     @SubscribeEvent(priority= EventPriority.NORMAL, receiveCanceled=true)
     public void onEvent(BiomeEvent.CreateDecorator event) {
-        System.out.println(String.format("BiomeEvent.CreateDecorator"));
+        //System.out.println(String.format("BiomeEvent.CreateDecorator"));
     }
     @SubscribeEvent(priority= EventPriority.NORMAL, receiveCanceled=true)
     public void onEvent(BiomeEvent.BiomeColor event) {

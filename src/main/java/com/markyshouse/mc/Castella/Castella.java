@@ -40,6 +40,6 @@ public class Castella
         System.out.println(" ******** Castella! ************");
         GameRegistry.registerWorldGenerator(new CastellaGenerator(buildings_per_region, buildings_minimum_separation, building_max_tries), 0);
         MinecraftForge.EVENT_BUS.register(new CastellaPopulateHandler());
-        MinecraftForge.TERRAIN_GEN_BUS.register(new CastellaTerrainEventHandler());
+        //MinecraftForge.TERRAIN_GEN_BUS.register(new CastellaTerrainEventHandler());
     }
 }
