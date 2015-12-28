@@ -120,7 +120,7 @@ public abstract class StructureBuilder {
         VillageCollection villageCollection = (VillageCollection)storage.loadData(MarkyshouseWorldSavedData.class, "villages");
         Village v = villageCollection.getNearestVillage(new BlockPos(bx, 64, bz), 300);
         if (v != null) {
-            int r = v.getVillageRadius();
+            double r = v.getVillageRadius() * 1.75;
             BlockPos center = v.getCenter();
             if (!(center.getX() + r < bx || center.getX() - r > bx + bw || center.getZ() + r < bz || center.getZ() - r > bz + bw)) {
                 System.out.println("Too Close to Village at " + center.toString());

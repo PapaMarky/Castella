@@ -1,19 +1,25 @@
 package com.markyshouse.mc.Castella;
 
+import com.markyshouse.mc.MarkyshouseWorldSavedData;
 import com.markyshouse.mc.TerrainMap;
 import net.minecraft.block.*;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemSign;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntitySign;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.village.Village;
+import net.minecraft.village.VillageCollection;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
+import net.minecraft.world.gen.structure.MapGenStructureData;
+import net.minecraft.world.storage.MapStorage;
 import org.lwjgl.Sys;
 
 import java.util.*;
@@ -22,6 +28,107 @@ import java.util.*;
  * Created by mark on 10/2/2015.
  */
 public class RoadBuilder {
+
+    static class TempleBox {
+        int[] bb = null;
+    }
+    static class VillageBox {
+        BlockPos center;
+        int radius;
+    }
+    static private ArrayList<VillageBox> villageBoxes = new ArrayList<VillageBox>();
+    static private ArrayList<TempleBox> templeBoxes = new ArrayList<TempleBox>();
+
+    static boolean haveTempleBox(int[] bb) {
+        Iterator<TempleBox> tit = templeBoxes.iterator();
+        while (tit.hasNext()) {
+            TempleBox tbox = tit.next();
+            if (bb[0] == tbox.bb[0] && bb[2] == tbox.bb[2] && bb[3] == tbox.bb[3] && bb[5] == tbox.bb[5]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static boolean haveCenterInVillageBoxes(BlockPos center) {
+        Iterator<TempleBox> tit = templeBoxes.iterator();
+        int bx = center.getX();
+        int bz = center.getZ();
+        while (tit.hasNext()) {
+            TempleBox tb = tit.next();
+            if (bx >= tb.bb[0] && bx <= tb.bb[3] && bz >= tb.bb[2] && bz <= tb.bb[5]) {
+                return true;
+            }
+        }
+        Iterator<VillageBox> vit = villageBoxes.iterator();
+        while (vit.hasNext()) {
+            VillageBox vbox = vit.next();
+            if (vbox.center == center) return true;
+        }
+
+        return false;
+    }
+    static public void updateVillageBoxes(World world) {
+        MapStorage storage = world.getPerWorldStorage();
+        VillageCollection villageCollection = (VillageCollection)storage.loadData(MarkyshouseWorldSavedData.class, "villages");
+
+        List villageList = villageCollection.getVillageList();
+        Iterator iterator = villageList.iterator();
+
+        while (iterator.hasNext()) {
+            Village village1 = (Village) iterator.next();
+            // do we have this one?
+            if (! haveCenterInVillageBoxes(village1.getCenter())) {
+                VillageBox vb = new VillageBox();
+                vb.center = village1.getCenter();
+                vb.radius = village1.getVillageRadius();
+                villageBoxes.add(vb);
+                System.out.println(String.format("FOUND NEW VILLAGE: count is: %d", villageBoxes.size()));
+                Iterator<VillageBox> vbit = villageBoxes.iterator();
+                while (vbit.hasNext()) {
+                    VillageBox box = vbit.next();
+                    System.out.println(String.format(" - center: %s, radius: %d", box.center.toString(), box.radius));
+                }
+            }
+        }
+        MapGenStructureData temples = (MapGenStructureData)storage.loadData(MapGenStructureData.class, "Temple");
+        NBTTagCompound tmpls = temples.func_143041_a();
+        Iterator it = tmpls.getKeySet().iterator();
+        while (it.hasNext()) {
+            String k = (String) it.next();
+            NBTTagCompound t = tmpls.getCompoundTag(k);
+            int[] tbb = t.getIntArray("BB");
+            if ( ! haveTempleBox(tbb)) {
+                TempleBox tb = new TempleBox();
+                tb.bb = tbb;
+                templeBoxes.add(tb);
+                System.out.println(String.format("FOUND NEW Temple: count is: %d", templeBoxes.size()));
+                Iterator<TempleBox> tbit = templeBoxes.iterator();
+                while (tbit.hasNext()) {
+                    TempleBox box = tbit.next();
+                    System.out.println(String.format(" - box: (%d, %d) - (%d, %d)", box.bb[0], box.bb[2], box.bb[3], box.bb[5]));
+                }
+            }
+        }
+    }
+
+    static private boolean positionIsInVillege(BlockPos blockPos) {
+        Iterator<VillageBox> vit = villageBoxes.iterator();
+        while (vit.hasNext()) {
+            VillageBox vbox = vit.next();
+            double r = vbox.radius * 2;
+            double radiusSquared = r * r;
+            double dx = (double)blockPos.getX() - vbox.center.getX();
+            double dz = (double)blockPos.getZ() - vbox.center.getZ();
+
+            double distanceSquared = dx * dx + dz * dz;
+            if (distanceSquared < radiusSquared) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public class RoadSegment {
         int p0;
@@ -71,6 +178,8 @@ public class RoadBuilder {
         if (!isNatural(blockPos, world)) {
             return;
         }
+        if (positionIsInVillege(blockPos)) return;
+
         Chunk chunk = chunkProvider.provideChunk(blockPos);
         int h = chunk.getHeight(blockPos);
         int n = 0;
@@ -318,7 +427,7 @@ public class RoadBuilder {
 
         // If the change in height is greater than the distance, we cannot build a road to it
         if (dy >= distance) {
-            System.out.println(String.format("  -- Rejecting Road: TOO STEEP: dy: %5.1f, length: %5.1f", dy, distance));
+            //System.out.println(String.format("  -- Rejecting Road: TOO STEEP: dy: %5.1f, length: %5.1f", dy, distance));
             return false;
         }
 
@@ -334,7 +443,7 @@ public class RoadBuilder {
             distance = Math.abs((direction == EnumFacing.EAST || direction == EnumFacing.WEST) ? dx : dz);
             if (dy > Math.floor( 4.0 * distance / 5.0)) {
                 failed_tries++;
-                System.out.println(String.format("  -- Rejecting segment: TOO STEEP: dy: %5.1f, length: %5.1f, %d tries", dy, distance, failed_tries));
+                //System.out.println(String.format("  -- Rejecting segment: TOO STEEP: dy: %5.1f, length: %5.1f, %d tries", dy, distance, failed_tries));
                 if (stack.isEmpty()) return false;
                 continue;
             }
@@ -354,7 +463,7 @@ public class RoadBuilder {
                 distance = Math.abs((direction == EnumFacing.EAST || direction == EnumFacing.WEST) ? center.getX() - p0.getX() : center.getZ() - p0.getZ());
                 if (dy > Math.floor( 4.0 * distance / 5.0)) {
                     failed_tries++;
-                    System.out.println(String.format("  -- Rejecting center: TOO STEEP: dy: %5.1f, length: %5.1f, %d tries", dy, distance, failed_tries));
+                    //System.out.println(String.format("  -- Rejecting center: TOO STEEP: dy: %5.1f, length: %5.1f, %d tries", dy, distance, failed_tries));
                     if (stack.isEmpty()) return false;
                     continue;
                 }
@@ -454,6 +563,7 @@ public class RoadBuilder {
                         }
                     }
                 }
+                updateVillageBoxes(world);
                 plot(roadBlock.pos, blockState1, world, chunkProvider);
                 int sign_rot = 0;
                 if (roadBlock.direction == EnumFacing.EAST) {

@@ -1,6 +1,7 @@
 package com.markyshouse.mc.Castella;
 
 import com.markyshouse.mc.MarkyshouseWorldSavedData;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
@@ -42,6 +43,8 @@ public class CastellaGenerator  implements IWorldGenerator {
             case 0: //Overworld
                 //System.out.println(" ** OVERWORLD chunk " + chunkX + ", " + chunkZ + " **");
                 //NBTTagCompound regionData = markyData.getRegionDataFromChunk(chunkX, chunkZ);
+                MinecraftServer server = MinecraftServer.getServer();
+                if (server.currentTask == "Preparing spawn area") break;
                 StructureFactory.getInstance().tryToBuildSomething(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
                 break;
             case -1: //Nether
