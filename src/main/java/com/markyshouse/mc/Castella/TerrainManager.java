@@ -38,7 +38,7 @@ class TerrainManager {
         if (! isTree(block)) {
             return -1;
         }
-        IBlockState bs = block.getActualState(block.getDefaultState(), world, blockPos);
+        IBlockState bs = world.getBlockState(blockPos);
         int meta = -1;
 
         Object obj = bs.getValue(BlockNewLog.VARIANT);
@@ -50,29 +50,6 @@ class TerrainManager {
     public TerrainManager(World world, IChunkProvider chunkProvider) {
         _world = world;
         _chunkProvider = chunkProvider;
-    }
-
-    public static int[][] getTreeMap(BlockPos pos, int w, int h, World world, IChunkProvider chunkProvider) {
-        int[][] map = new int[w][h];
-        int x0 = pos.getX();
-        int z0 = pos.getZ();
-        int y0 = pos.getY();
-
-        for (int x = 0; x < w; x++) {
-            for (int z = 0; z < h; z++) {
-                /*
-                BlockPos pos1 = new BlockPos(x0 + x, y0, z0 + z);
-                int ground = get_ground_level(pos, chunkProvider);
-                pos1 = new BlockPos(x0 + x, ground + 1, z0 + z);
-                Chunk chunk = chunkProvider.provideChunk(pos1);
-                Block block = chunk.getBlock(pos1);
-                if (block.isWood(world, pos1)) {
-                    map[x][z] = getTreeType(pos1, world, chunkProvider);
-                }
-                */
-            }
-        }
-        return map;
     }
 
     List<BiomeGenBase> biomeList = null;

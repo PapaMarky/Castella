@@ -18,15 +18,17 @@ public class CastellaGenerator  implements IWorldGenerator {
     private int buildings_per_region;
     private int buildings_minimum_separation;
     private int building_max_tries = 5;
+    private boolean build_in_spawn_area = false;
 
     private static boolean working = false;
     HashMap<String, ArrayList<StructureBuilder>> region_castle_map = new HashMap<String, ArrayList<StructureBuilder>>();
     MarkyshouseWorldSavedData markyData = null;
 
-    public CastellaGenerator(int buildings_per_region, int buildings_minimum_separation, int building_max_tries) {
+    public CastellaGenerator(int buildings_per_region, int buildings_minimum_separation, int building_max_tries, boolean build_in_spawn_area) {
         this.buildings_per_region = buildings_per_region;
         this.buildings_minimum_separation = buildings_minimum_separation;
         this.building_max_tries = building_max_tries;
+        this.build_in_spawn_area = build_in_spawn_area;
 
         // Register the Structure Builders
         StructureFactory.getInstance().register(new TowerBuilder());
@@ -44,7 +46,7 @@ public class CastellaGenerator  implements IWorldGenerator {
                 //System.out.println(" ** OVERWORLD chunk " + chunkX + ", " + chunkZ + " **");
                 //NBTTagCompound regionData = markyData.getRegionDataFromChunk(chunkX, chunkZ);
                 MinecraftServer server = MinecraftServer.getServer();
-                if (server.currentTask == "Preparing spawn area") break;
+                if (!this.build_in_spawn_area && server.currentTask == "Preparing spawn area") break;
                 StructureFactory.getInstance().tryToBuildSomething(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
                 break;
             case -1: //Nether

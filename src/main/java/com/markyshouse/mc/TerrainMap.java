@@ -137,7 +137,7 @@ public class TerrainMap {
         if (! block.isWood(world, blockPos)) {
             return -1;
         }
-        IBlockState bs = block.getActualState(block.getDefaultState(), world, blockPos);
+        IBlockState bs = world.getBlockState(blockPos);
         int meta = -1;
 
         Object obj = bs.getValue(BlockNewLog.VARIANT);

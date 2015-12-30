@@ -187,6 +187,7 @@ public class RoadBuilder {
         BlockPos pos = blockPos.up();
         while (TerrainMap.isGround(chunk.getBlock(pos))) {
             pos = pos.up();
+            chunk = chunkProvider.provideChunk(pos);
         }
 
         int hh = pos.getY();
@@ -207,10 +208,10 @@ public class RoadBuilder {
         }
         while (hh > blockPos.getY()) {
             pos = new BlockPos(blockPos.getX(), hh, blockPos.getZ());
-            Chunk chunk1 = chunkProvider.provideChunk(pos);
-            Block block = chunk1.getBlock(pos);
-            if (!(block instanceof BlockLeavesBase) && !BullDozer.destroyTree(pos, world, chunkProvider)) {
-                world.destroyBlock(pos, false);
+            if (!BullDozer.destroyTree(pos, world, chunkProvider)) {
+                if(! (chunk.getBlock(pos) instanceof BlockBreakable)) {
+                    world.destroyBlock(pos, false);
+                }
             }
             hh--;
         }

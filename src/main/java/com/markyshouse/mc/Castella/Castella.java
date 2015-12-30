@@ -23,6 +23,7 @@ public class Castella
     private int buildings_per_region = 0;
     private int buildings_minimum_separation = 100;
     private int building_max_tries = 5;
+    private boolean build_in_spawn_area = false;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -32,13 +33,15 @@ public class Castella
         buildings_minimum_separation = config.getInt("buildings_minimum_separation", Configuration.CATEGORY_GENERAL, 75, 50, 512, "Minimum distance between structures");
         building_max_tries =
                 config.getInt("building_max_tries", Configuration.CATEGORY_GENERAL, 5, 1, 50, "Maximum number of times we try to place each building");
+        build_in_spawn_area =
+                config.getBoolean("build_in_spawn_area", Configuration.CATEGORY_GENERAL, false, "Build Towers in spawn area.");
         config.save();
     }
     @EventHandler
     public void init(FMLInitializationEvent event)
     {
         System.out.println(" ******** Castella! ************");
-        GameRegistry.registerWorldGenerator(new CastellaGenerator(buildings_per_region, buildings_minimum_separation, building_max_tries), 0);
+        GameRegistry.registerWorldGenerator(new CastellaGenerator(buildings_per_region, buildings_minimum_separation, building_max_tries, build_in_spawn_area), 0);
         MinecraftForge.EVENT_BUS.register(new CastellaPopulateHandler());
         //MinecraftForge.TERRAIN_GEN_BUS.register(new CastellaTerrainEventHandler());
     }

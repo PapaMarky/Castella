@@ -349,7 +349,7 @@ public abstract class StructureBuilder {
                 if (cover instanceof IPlantable) {
                     plantmap[x][z] = world.getBlockState(p.up()); // cover.getActualState(cover.getDefaultState(), world, p.up());
                 } else if (cover instanceof BlockLog) {
-                    IBlockState cover_bs = cover.getActualState(cover.getDefaultState(), world, p.up());
+                    IBlockState cover_bs = world.getBlockState(p.up());
                     IBlockState sapling_bs = null;
 
                     if (cover instanceof BlockNewLog)
@@ -367,7 +367,7 @@ public abstract class StructureBuilder {
                     if (block1 instanceof  BlockLeaves || block1 instanceof BlockLog) {
                         block1.breakBlock(world, pos, block1.getDefaultState());}
                     if ((footprint[x][z] < '0' && footprint[x][z] > '9') || block1 instanceof IPlantable || block1 instanceof BlockLog)
-                        world.destroyBlock(pos, false);
+                        if (! BullDozer.destroyTree(pos, world, chunkProvider)) world.destroyBlock(pos, false);
                     h--;
                 }
             }
