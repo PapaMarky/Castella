@@ -10,11 +10,13 @@ import com.markyshouse.mc.TerrainMap;
 import net.minecraft.block.*;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntitySign;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
+import net.minecraft.world.border.IBorderListener;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 
@@ -514,9 +516,114 @@ public class BullDozer {
         }
         return treeMap;
     }
+    static private void checkMushroomNodeNeighbor(BlockPos blockPos, Deque<BlockPos> treeQueue, Map<String, BlockPos> treeMap, IChunkProvider chunkProvider) {
+        if (treeMap.containsKey(makeBlockPosKey(blockPos))) return;
+        Chunk chunk = chunkProvider.provideChunk(blockPos);
+        Block block = chunk.getBlock(blockPos);
+        if (!(block instanceof  BlockHugeMushroom)) return;
+        treeQueue.addLast(blockPos);
+    }
+    static private void visitNextMushroomNode(Deque<BlockPos> treeQueue, Map<String, BlockPos> treeMap, IChunkProvider chunkProvider) {
+        BlockPos blockPos = treeQueue.removeFirst();
+        if (treeMap.containsKey(makeBlockPosKey(blockPos))) return;
+        Chunk chunk = chunkProvider.provideChunk(blockPos);
+        Block block = chunk.getBlock(blockPos);
+        if (!(block instanceof  BlockHugeMushroom)) return;
+
+        treeMap.put(makeBlockPosKey(blockPos), blockPos);
+
+        checkMushroomNodeNeighbor(blockPos.up(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.down(), treeQueue, treeMap, chunkProvider);
+
+        checkMushroomNodeNeighbor(blockPos.up().north(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.up().east(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.up().south(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.up().west(), treeQueue, treeMap, chunkProvider);
+
+        checkMushroomNodeNeighbor(blockPos.down().north(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.down().east(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.down().south(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.down().west(), treeQueue, treeMap, chunkProvider);
+
+        checkMushroomNodeNeighbor(blockPos.north(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.east(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.south(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.west(), treeQueue, treeMap, chunkProvider);
+
+        checkMushroomNodeNeighbor(blockPos.north().east(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.south().east(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.north().west(), treeQueue, treeMap, chunkProvider);
+        checkMushroomNodeNeighbor(blockPos.south().west(), treeQueue, treeMap, chunkProvider);
+    }
+    static public Map<String, BlockPos> makeMushroomMap(BlockPos blockPos, IChunkProvider chunkProvider) {
+        Chunk chunk = chunkProvider.provideChunk(blockPos);
+        Block block = chunk.getBlock(blockPos);
+        Map<String, BlockPos> treeMap = null;
+        if (block instanceof BlockHugeMushroom) {
+            treeMap = new HashMap<String, BlockPos>();
+            Deque<BlockPos> treeQueue = new LinkedList<BlockPos>();
+            treeQueue.addLast(blockPos);
+
+            while(!treeQueue.isEmpty()) {
+                visitNextMushroomNode(treeQueue, treeMap, chunkProvider);
+            }
+        }
+        return treeMap;
+    }
+    static public boolean destroyMushroom(BlockPos blockPos, World world, IChunkProvider chunkProvider) {
+        Chunk chunk = chunkProvider.provideChunk(blockPos);
+        Block block = chunk.getBlock(blockPos);
+        if (block instanceof BlockHugeMushroom) {
+            String mushroomName = "MUSHROOM";
+            if (block == Blocks.brown_mushroom_block) mushroomName = "Brown Mushroom";
+            else if (block == Blocks.red_mushroom_block) mushroomName = "Red Mushroom";
+
+            Map<String, BlockPos> mushroomMap = makeMushroomMap(blockPos, chunkProvider);
+
+            if (mushroomMap == null) return false;
+            Iterator<BlockPos> it = mushroomMap.values().iterator();
+            BlockPos signPos = null;
+            while (it.hasNext()) {
+                BlockPos pos = it.next();
+                if (signPos == null) {
+                    signPos = pos;
+                }
+                world.destroyBlock(pos, false);
+            }
+            // place sign at origin
+            IBlockState signBlockState = Blocks.standing_sign.getDefaultState();
+            BlockStandingSign signBlock = (BlockStandingSign)signBlockState.getBlock();
+            TileEntity tileentity = signBlock.createNewTileEntity(world, signBlock.getMetaFromState(signBlockState));
+            if (tileentity instanceof TileEntitySign) {
+                TileEntitySign entity = (TileEntitySign)tileentity;
+                entity.signText[0] = new ChatComponentText("DESTROYED");
+                entity.signText[1] = new ChatComponentText(mushroomName);
+                entity.signText[2] = new ChatComponentText("TREE");
+                entity.signText[3] = new ChatComponentText("");
+                entity.markDirty();
+                block = chunk.getBlock(signPos);
+
+                while (block instanceof BlockAir) {
+                    signPos = signPos.down();
+                    block = chunk.getBlock(signPos);
+                }
+                while (! (block instanceof BlockAir)) {
+                    signPos = signPos.up();
+                    block = chunk.getBlock(signPos);
+                }
+                world.destroyBlock(signPos, false);
+                world.destroyBlock(signPos.up(), false);
+                world.setBlockState(signPos, signBlock.getActualState(signBlockState, world, signPos));
+                world.setTileEntity(signPos, entity);
+            }
+            return true;
+        }
+        return false;
+    }
     static public boolean destroyTree(BlockPos blockPos, World world, IChunkProvider chunkProvider) {
         Chunk chunk = chunkProvider.provideChunk(blockPos);
         Block block = chunk.getBlock(blockPos);
+        if (destroyMushroom(blockPos, world, chunkProvider)) return true;
         if (block instanceof BlockLeavesBase) {
             BlockPos logPos = findTreeForLeaves(blockPos, world, chunkProvider);
             if (logPos == null) return false;
@@ -596,7 +703,7 @@ public class BullDozer {
             TileEntity tileentity = signBlock.createNewTileEntity(world, signBlock.getMetaFromState(signBlockState));
             if (tileentity instanceof TileEntitySign) {
                 TileEntitySign entity = (TileEntitySign)tileentity;
-                entity.signText[0] = new ChatComponentText("TOOK OUT");
+                entity.signText[0] = new ChatComponentText("REMOVED");
                 entity.signText[1] = new ChatComponentText(type);
                 entity.signText[2] = new ChatComponentText("TREE");
                 entity.signText[3] = new ChatComponentText("");
